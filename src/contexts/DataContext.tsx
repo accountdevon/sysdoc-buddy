@@ -38,16 +38,19 @@ const defaultData: Category[] = [
             id: '1-1-1',
             title: 'Add New User',
             description: 'Create a new user account on the system',
+            notes: 'User management is essential for system security. Always use strong passwords and consider adding users to appropriate groups for access control. The useradd command creates the user while passwd sets their password.',
             codeBlocks: [
               {
                 id: 'cb1',
                 title: 'Create user with home directory',
+                description: 'Creates a new user with a home directory (-m) and sets bash as the default shell (-s). Replace "username" with the desired username.',
                 code: 'sudo useradd -m -s /bin/bash username',
                 language: 'bash'
               },
               {
                 id: 'cb2',
                 title: 'Set password for user',
+                description: 'Sets or changes the password for the specified user. You will be prompted to enter the new password twice.',
                 code: 'sudo passwd username',
                 language: 'bash'
               }
@@ -74,16 +77,19 @@ const defaultData: Category[] = [
             id: '2-1-1',
             title: 'Check Network Connectivity',
             description: 'Various commands to test network connectivity',
+            notes: 'These diagnostic tools help identify network issues. Ping tests basic connectivity while traceroute shows the path packets take to reach a destination, helping identify where problems occur.',
             codeBlocks: [
               {
                 id: 'cb3',
                 title: 'Ping a host',
+                description: 'Sends 4 ICMP echo requests to test if a host is reachable. Shows round-trip time and packet loss.',
                 code: 'ping -c 4 google.com',
                 language: 'bash'
               },
               {
                 id: 'cb4',
                 title: 'Trace route to host',
+                description: 'Shows the network path to a destination, displaying each hop (router) along the way with latency times.',
                 code: 'traceroute google.com',
                 language: 'bash'
               }

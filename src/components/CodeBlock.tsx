@@ -55,6 +55,11 @@ export function CodeBlock({ block, onEdit, onDelete }: CodeBlockProps) {
           <span className="text-primary">$</span> {block.code}
         </code>
       </pre>
+      {block.description && (
+        <div className="px-4 py-3 border-t border-[hsl(var(--code-border))] bg-secondary/30">
+          <p className="text-sm text-muted-foreground">{block.description}</p>
+        </div>
+      )}
     </div>
   );
 }

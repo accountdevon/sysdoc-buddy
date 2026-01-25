@@ -132,7 +132,7 @@ export function Sidebar({
 
   const handleAddTopic = () => {
     if (!addingTopic) return;
-    addTopic(addingTopic.categoryId, addingTopic.subcategoryId, { ...topicForm, codeBlocks: [] });
+    addTopic(addingTopic.categoryId, addingTopic.subcategoryId, { ...topicForm, notes: '', codeBlocks: [] });
     setAddingTopic(null);
     setTopicForm({ title: '', description: '' });
     toast.success('Topic added');
