@@ -28,8 +28,8 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
   const [editingTopic, setEditingTopic] = useState(false);
   const [editingCodeBlock, setEditingCodeBlock] = useState<CodeBlockType | null>(null);
   const [addingCodeBlock, setAddingCodeBlock] = useState(false);
-  const [topicForm, setTopicForm] = useState({ title: topic.title, description: topic.description });
-  const [codeForm, setCodeForm] = useState({ title: '', code: '', language: 'bash' });
+  const [topicForm, setTopicForm] = useState({ title: topic.title, description: topic.description, notes: topic.notes || '' });
+  const [codeForm, setCodeForm] = useState({ title: '', description: '', code: '', language: 'bash' });
 
   const handleUpdateTopic = () => {
     updateTopic(categoryId, subcategoryId, topic.id, topicForm);
@@ -54,13 +54,13 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
       codeBlocks: [...topic.codeBlocks, newBlock]
     });
     setAddingCodeBlock(false);
-    setCodeForm({ title: '', code: '', language: 'bash' });
+    setCodeForm({ title: '', description: '', code: '', language: 'bash' });
     toast.success('Code block added');
   };
 
   const handleEditCodeBlock = (block: CodeBlockType) => {
     setEditingCodeBlock(block);
-    setCodeForm({ title: block.title, code: block.code, language: block.language });
+    setCodeForm({ title: block.title, description: block.description || '', code: block.code, language: block.language });
   };
 
   const handleUpdateCodeBlock = () => {
@@ -70,7 +70,7 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
     );
     updateTopic(categoryId, subcategoryId, topic.id, { codeBlocks: updatedBlocks });
     setEditingCodeBlock(null);
-    setCodeForm({ title: '', code: '', language: 'bash' });
+    setCodeForm({ title: '', description: '', code: '', language: 'bash' });
     toast.success('Code block updated');
   };
 
@@ -121,6 +121,13 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
 
       <p className="text-muted-foreground">{topic.description}</p>
 
+      {topic.notes && (
+        <div className="bg-secondary/50 border border-border rounded-lg p-4">
+          <h4 className="font-medium text-sm text-muted-foreground mb-2">Notes</h4>
+          <p className="text-foreground whitespace-pre-wrap">{topic.notes}</p>
+        </div>
+      )}
+
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium">Commands</h3>
@@ -152,21 +159,37 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
 
       {/* Edit Topic Dialog */}
       <Dialog open={editingTopic} onOpenChange={setEditingTopic}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit Topic</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <Input
-              placeholder="Topic title"
-              value={topicForm.title}
-              onChange={(e) => setTopicForm({ ...topicForm, title: e.target.value })}
-            />
-            <Textarea
-              placeholder="Description"
-              value={topicForm.description}
-              onChange={(e) => setTopicForm({ ...topicForm, description: e.target.value })}
-            />
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Title</label>
+              <Input
+                placeholder="Topic title"
+                value={topicForm.title}
+                onChange={(e) => setTopicForm({ ...topicForm, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Short Description</label>
+              <Textarea
+                placeholder="Brief description of the topic"
+                value={topicForm.description}
+                onChange={(e) => setTopicForm({ ...topicForm, description: e.target.value })}
+                rows={2}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Detailed Notes</label>
+              <Textarea
+                placeholder="Add detailed explanations, best practices, warnings, or additional context..."
+                value={topicForm.notes}
+                onChange={(e) => setTopicForm({ ...topicForm, notes: e.target.value })}
+                rows={4}
+              />
+            </div>
             <Button onClick={handleUpdateTopic} className="w-full">Save Changes</Button>
           </div>
         </DialogContent>
@@ -177,30 +200,49 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
         if (!open) {
           setAddingCodeBlock(false);
           setEditingCodeBlock(null);
-          setCodeForm({ title: '', code: '', language: 'bash' });
+          setCodeForm({ title: '', description: '', code: '', language: 'bash' });
         }
       }}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingCodeBlock ? 'Edit Command' : 'Add Command'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <Input
-              placeholder="Command title (optional)"
-              value={codeForm.title}
-              onChange={(e) => setCodeForm({ ...codeForm, title: e.target.value })}
-            />
-            <Textarea
-              placeholder="Command or code"
-              className="font-mono"
-              value={codeForm.code}
-              onChange={(e) => setCodeForm({ ...codeForm, code: e.target.value })}
-            />
-            <Input
-              placeholder="Language (e.g., bash, python)"
-              value={codeForm.language}
-              onChange={(e) => setCodeForm({ ...codeForm, language: e.target.value })}
-            />
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Command Title</label>
+              <Input
+                placeholder="e.g., List all files"
+                value={codeForm.title}
+                onChange={(e) => setCodeForm({ ...codeForm, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Command/Code</label>
+              <Textarea
+                placeholder="ls -la"
+                className="font-mono"
+                value={codeForm.code}
+                onChange={(e) => setCodeForm({ ...codeForm, code: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">What does this command do?</label>
+              <Textarea
+                placeholder="Explain what this command does, its options, and when to use it..."
+                value={codeForm.description}
+                onChange={(e) => setCodeForm({ ...codeForm, description: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Language</label>
+              <Input
+                placeholder="bash, python, etc."
+                value={codeForm.language}
+                onChange={(e) => setCodeForm({ ...codeForm, language: e.target.value })}
+              />
+            </div>
             <Button
               onClick={editingCodeBlock ? handleUpdateCodeBlock : handleAddCodeBlock}
               className="w-full"

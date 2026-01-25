@@ -2,6 +2,7 @@ export interface Topic {
   id: string;
   title: string;
   description: string;
+  notes: string; // Detailed notes/explanation for the topic
   codeBlocks: CodeBlock[];
   createdAt: string;
   updatedAt: string;
@@ -10,6 +11,7 @@ export interface Topic {
 export interface CodeBlock {
   id: string;
   title: string;
+  description: string; // Explanation of what this command does
   code: string;
   language: string;
 }
