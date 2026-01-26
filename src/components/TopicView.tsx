@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, Plus, Pencil, Trash2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Topic, CodeBlock as CodeBlockType } from '@/types';
-import { CodeBlock } from './CodeBlock';
+import { CommandBlock, LANGUAGE_OPTIONS } from './CommandBlock';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import {
@@ -11,6 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
@@ -55,7 +62,7 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
     });
     setAddingCodeBlock(false);
     setCodeForm({ title: '', description: '', code: '', language: 'bash' });
-    toast.success('Code block added');
+    toast.success('Command added');
   };
 
   const handleEditCodeBlock = (block: CodeBlockType) => {
@@ -71,14 +78,14 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
     updateTopic(categoryId, subcategoryId, topic.id, { codeBlocks: updatedBlocks });
     setEditingCodeBlock(null);
     setCodeForm({ title: '', description: '', code: '', language: 'bash' });
-    toast.success('Code block updated');
+    toast.success('Command updated');
   };
 
   const handleDeleteCodeBlock = (blockId: string) => {
-    if (confirm('Delete this code block?')) {
+    if (confirm('Delete this command?')) {
       const updatedBlocks = topic.codeBlocks.filter(b => b.id !== blockId);
       updateTopic(categoryId, subcategoryId, topic.id, { codeBlocks: updatedBlocks });
-      toast.success('Code block deleted');
+      toast.success('Command deleted');
     }
   };
 
@@ -92,12 +99,13 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack}>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={onBack} className="self-start">
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div className="flex-1">
-          <h2 className="text-2xl font-semibold">{topic.title}</h2>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-xl sm:text-2xl font-semibold break-words">{topic.title}</h2>
           <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
@@ -106,35 +114,39 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
           </div>
         </div>
         {isAdmin && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start sm:self-center">
             <Button variant="outline" size="sm" onClick={() => setEditingTopic(true)}>
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit
+              <Pencil className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Edit</span>
             </Button>
             <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={handleDeleteTopic}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
+              <Trash2 className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Delete</span>
             </Button>
           </div>
         )}
       </div>
 
+      {/* Description */}
       <p className="text-muted-foreground">{topic.description}</p>
 
+      {/* Notes */}
       {topic.notes && (
         <div className="bg-secondary/50 border border-border rounded-lg p-4">
           <h4 className="font-medium text-sm text-muted-foreground mb-2">Notes</h4>
-          <p className="text-foreground whitespace-pre-wrap">{topic.notes}</p>
+          <p className="text-foreground whitespace-pre-wrap text-sm sm:text-base">{topic.notes}</p>
         </div>
       )}
 
+      {/* Commands Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium">Commands</h3>
           {isAdmin && (
             <Button size="sm" onClick={() => setAddingCodeBlock(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Command
+              <span className="hidden sm:inline">Add Command</span>
+              <span className="sm:hidden">Add</span>
             </Button>
           )}
         </div>
@@ -146,7 +158,7 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
         ) : (
           <div className="space-y-4">
             {topic.codeBlocks.map((block) => (
-              <CodeBlock
+              <CommandBlock
                 key={block.id}
                 block={block}
                 onEdit={() => handleEditCodeBlock(block)}
@@ -159,7 +171,7 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
 
       {/* Edit Topic Dialog */}
       <Dialog open={editingTopic} onOpenChange={setEditingTopic}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Topic</DialogTitle>
           </DialogHeader>
@@ -195,7 +207,7 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
         </DialogContent>
       </Dialog>
 
-      {/* Add/Edit Code Block Dialog */}
+      {/* Add/Edit Command Dialog */}
       <Dialog open={addingCodeBlock || !!editingCodeBlock} onOpenChange={(open) => {
         if (!open) {
           setAddingCodeBlock(false);
@@ -203,29 +215,22 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
           setCodeForm({ title: '', description: '', code: '', language: 'bash' });
         }
       }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingCodeBlock ? 'Edit Command' : 'Add Command'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* 1. Command Title */}
             <div>
               <label className="text-sm font-medium mb-1.5 block">Command Title</label>
               <Input
-                placeholder="e.g., List all files"
+                placeholder="e.g., List all files with details"
                 value={codeForm.title}
                 onChange={(e) => setCodeForm({ ...codeForm, title: e.target.value })}
               />
             </div>
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Command/Code</label>
-              <Textarea
-                placeholder="ls -la"
-                className="font-mono"
-                value={codeForm.code}
-                onChange={(e) => setCodeForm({ ...codeForm, code: e.target.value })}
-                rows={3}
-              />
-            </div>
+
+            {/* 2. What does this command do */}
             <div>
               <label className="text-sm font-medium mb-1.5 block">What does this command do?</label>
               <Textarea
@@ -235,14 +240,39 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
                 rows={3}
               />
             </div>
+
+            {/* 3. Command/Code */}
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Language</label>
-              <Input
-                placeholder="bash, python, etc."
-                value={codeForm.language}
-                onChange={(e) => setCodeForm({ ...codeForm, language: e.target.value })}
+              <label className="text-sm font-medium mb-1.5 block">Command / Code</label>
+              <Textarea
+                placeholder="ls -la"
+                className="font-mono"
+                value={codeForm.code}
+                onChange={(e) => setCodeForm({ ...codeForm, code: e.target.value })}
+                rows={3}
               />
             </div>
+
+            {/* 4. Language Dropdown */}
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Language</label>
+              <Select 
+                value={codeForm.language} 
+                onValueChange={(v) => setCodeForm({ ...codeForm, language: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select language" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGE_OPTIONS.map((lang) => (
+                    <SelectItem key={lang.value} value={lang.value}>
+                      {lang.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <Button
               onClick={editingCodeBlock ? handleUpdateCodeBlock : handleAddCodeBlock}
               className="w-full"

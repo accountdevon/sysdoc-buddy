@@ -60,7 +60,7 @@ export function MainContent({
             {isAdmin && <p className="text-sm mt-2">Use the sidebar to add topics.</p>}
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             {selectedSubcategory.topics.map((topic) => (
               <div
                 key={topic.id}
@@ -101,7 +101,7 @@ export function MainContent({
             {isAdmin && <p className="text-sm mt-2">Use the sidebar to add subcategories.</p>}
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             {selectedCategory.subcategories.map((subcategory) => (
               <div
                 key={subcategory.id}
@@ -146,7 +146,7 @@ export function MainContent({
           {isAdmin && <p className="text-sm mt-2">Click the + button in the sidebar to create your first category.</p>}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {categories.map((category) => (
             <CategoryCard
               key={category.id}

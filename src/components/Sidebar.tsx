@@ -29,6 +29,7 @@ interface SidebarProps {
   onSelectCategory: (id: string) => void;
   onSelectSubcategory: (categoryId: string, subcategoryId: string) => void;
   onSelectTopic: (categoryId: string, subcategoryId: string, topicId: string) => void;
+  isMobile?: boolean;
 }
 
 const iconOptions = [
@@ -47,7 +48,8 @@ export function Sidebar({
   selectedTopicId,
   onSelectCategory,
   onSelectSubcategory,
-  onSelectTopic
+  onSelectTopic,
+  isMobile = false
 }: SidebarProps) {
   const { isAdmin } = useAuth();
   const { addCategory, updateCategory, deleteCategory, addSubcategory, updateSubcategory, deleteSubcategory, addTopic } = useData();
@@ -139,7 +141,7 @@ export function Sidebar({
   };
 
   return (
-    <aside className="w-80 border-r border-border bg-card/50 flex flex-col h-[calc(100vh-4rem)]">
+    <aside className={`${isMobile ? 'w-full h-full' : 'w-80 hidden lg:flex'} border-r border-border bg-card/50 flex flex-col h-[calc(100vh-4rem)]`}>
       <div className="p-4 border-b border-border flex items-center justify-between">
         <h2 className="font-semibold">Categories</h2>
         {isAdmin && (

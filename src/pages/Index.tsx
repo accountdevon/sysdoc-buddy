@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { MainContent } from '@/components/MainContent';
+import { MobileNav } from '@/components/MobileNav';
 import { useData } from '@/contexts/DataContext';
 
 const Index = () => {
@@ -40,7 +41,19 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header
+        mobileNav={
+          <MobileNav
+            categories={categories}
+            selectedCategoryId={selectedCategoryId}
+            selectedSubcategoryId={selectedSubcategoryId}
+            selectedTopicId={selectedTopicId}
+            onSelectCategory={handleSelectCategory}
+            onSelectSubcategory={handleSelectSubcategory}
+            onSelectTopic={handleSelectTopic}
+          />
+        }
+      />
       <div className="flex">
         <Sidebar
           categories={categories}
@@ -51,7 +64,7 @@ const Index = () => {
           onSelectSubcategory={handleSelectSubcategory}
           onSelectTopic={handleSelectTopic}
         />
-        <main className="flex-1 p-6 overflow-y-auto h-[calc(100vh-4rem)]">
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto h-[calc(100vh-4rem)]">
           <MainContent
             categories={categories}
             selectedCategoryId={selectedCategoryId}
