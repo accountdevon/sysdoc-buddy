@@ -28,7 +28,11 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-export function Header() {
+interface HeaderProps {
+  mobileNav?: React.ReactNode;
+}
+
+export function Header({ mobileNav }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { isAdmin, login, loginWithFile, logout, changePassword, resetToDefault, generateAuthFile, isDefaultPassword } = useAuth();
   const { exportData, importData } = useData();
@@ -141,30 +145,31 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 terminal-border">
-            <Terminal className="h-5 w-5 text-primary" />
+      <div className="container flex h-14 sm:h-16 items-center justify-between px-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {mobileNav}
+          <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 terminal-border">
+            <Terminal className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">Linux Admin</h1>
-            <p className="text-xs text-muted-foreground">Command Reference</p>
+            <h1 className="text-base sm:text-lg font-semibold tracking-tight">Linux Admin</h1>
+            <p className="text-xs text-muted-foreground hidden sm:block">Command Reference</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           {isAdmin && (
-            <span className="admin-badge">
+            <span className="admin-badge hidden sm:inline-flex">
               <Shield className="h-3 w-3" />
               Admin
             </span>
           )}
 
-          <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9">
+          <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 sm:h-9 sm:w-9">
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
-          <Button variant="ghost" size="icon" onClick={handleExport} className="h-9 w-9">
+          <Button variant="ghost" size="icon" onClick={handleExport} className="h-8 w-8 sm:h-9 sm:w-9">
             <Download className="h-4 w-4" />
           </Button>
 
@@ -296,7 +301,7 @@ export function Header() {
                         </AlertDialog>
                       </div>
                       {isDefaultPassword && (
-                        <p className="text-xs text-center text-amber-500">
+                        <p className="text-xs text-center text-destructive">
                           ⚠️ You're using the default password. Consider changing it for security.
                         </p>
                       )}
