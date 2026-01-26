@@ -1,4 +1,4 @@
-import { Terminal, Sun, Moon, LogIn, LogOut, Download, Upload, Shield, Settings, Key, FileKey, RotateCcw } from 'lucide-react';
+import { Terminal, Sun, Moon, LogIn, LogOut, Download, Upload, Shield, Settings, Key, FileKey, RotateCcw, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,9 +30,10 @@ import {
 
 interface HeaderProps {
   mobileNav?: React.ReactNode;
+  onOpenSearch?: () => void;
 }
 
-export function Header({ mobileNav }: HeaderProps) {
+export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { isAdmin, login, loginWithFile, logout, changePassword, resetToDefault, generateAuthFile, isDefaultPassword } = useAuth();
   const { exportData, importData } = useData();
@@ -164,6 +165,10 @@ export function Header({ mobileNav }: HeaderProps) {
               Admin
             </span>
           )}
+
+          <Button variant="ghost" size="icon" onClick={onOpenSearch} className="h-8 w-8 sm:h-9 sm:w-9">
+            <Search className="h-4 w-4" />
+          </Button>
 
           <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 sm:h-9 sm:w-9">
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

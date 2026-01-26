@@ -3,6 +3,7 @@ import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { MainContent } from '@/components/MainContent';
 import { MobileNav } from '@/components/MobileNav';
+import { SearchDialog } from '@/components/SearchDialog';
 import { useData } from '@/contexts/DataContext';
 
 const Index = () => {
@@ -10,6 +11,7 @@ const Index = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string | null>(null);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const handleSelectCategory = (id: string) => {
     setSelectedCategoryId(id);
@@ -27,6 +29,12 @@ const Index = () => {
     setSelectedCategoryId(categoryId);
     setSelectedSubcategoryId(subcategoryId);
     setSelectedTopicId(topicId);
+  };
+
+  const handleSearchNavigate = (categoryId: string, subcategoryId?: string, topicId?: string) => {
+    setSelectedCategoryId(categoryId);
+    setSelectedSubcategoryId(subcategoryId || null);
+    setSelectedTopicId(topicId || null);
   };
 
   const handleBack = () => {
@@ -53,6 +61,12 @@ const Index = () => {
             onSelectTopic={handleSelectTopic}
           />
         }
+        onOpenSearch={() => setSearchOpen(true)}
+      />
+      <SearchDialog 
+        open={searchOpen} 
+        onOpenChange={setSearchOpen}
+        onNavigate={handleSearchNavigate}
       />
       <div className="flex">
         <Sidebar
