@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText } from 'lucide-react';
+import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Category, Subcategory, Topic } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -52,7 +52,7 @@ export function Sidebar({
   isMobile = false
 }: SidebarProps) {
   const { isAdmin } = useAuth();
-  const { addCategory, updateCategory, deleteCategory, addSubcategory, updateSubcategory, deleteSubcategory, addTopic } = useData();
+  const { addCategory, updateCategory, deleteCategory, moveCategoryUp, moveCategoryDown, addSubcategory, updateSubcategory, deleteSubcategory, addTopic } = useData();
   
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedSubcategories, setExpandedSubcategories] = useState<Set<string>>(new Set());
@@ -170,7 +170,25 @@ export function Sidebar({
                 <span className="truncate">{category.name}</span>
               </div>
               {isAdmin && (
-                <div className="hidden group-hover:flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                <div className="hidden group-hover:flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => moveCategoryUp(category.id)}
+                    title="Move up"
+                  >
+                    <ChevronUp className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => moveCategoryDown(category.id)}
+                    title="Move down"
+                  >
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"

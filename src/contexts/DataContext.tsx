@@ -6,6 +6,8 @@ interface DataContextType {
   addCategory: (category: Omit<Category, 'id' | 'subcategories'>) => void;
   updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
+  moveCategoryUp: (id: string) => void;
+  moveCategoryDown: (id: string) => void;
   addSubcategory: (categoryId: string, subcategory: Omit<Subcategory, 'id' | 'topics'>) => void;
   updateSubcategory: (categoryId: string, subcategoryId: string, updates: Partial<Subcategory>) => void;
   deleteSubcategory: (categoryId: string, subcategoryId: string) => void;
@@ -138,6 +140,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setCategories(prev => prev.filter(cat => cat.id !== id));
   };
 
+  const moveCategoryUp = (id: string) => {
+    setCategories(prev => {
+      const index = prev.findIndex(cat => cat.id === id);
+      if (index <= 0) return prev;
+      const newCategories = [...prev];
+      [newCategories[index - 1], newCategories[index]] = [newCategories[index], newCategories[index - 1]];
+      return newCategories;
+    });
+  };
+
+  const moveCategoryDown = (id: string) => {
+    setCategories(prev => {
+      const index = prev.findIndex(cat => cat.id === id);
+      if (index === -1 || index >= prev.length - 1) return prev;
+      const newCategories = [...prev];
+      [newCategories[index], newCategories[index + 1]] = [newCategories[index + 1], newCategories[index]];
+      return newCategories;
+    });
+  };
+
   const addSubcategory = (categoryId: string, subcategory: Omit<Subcategory, 'id' | 'topics'>) => {
     setCategories(prev => prev.map(cat => {
       if (cat.id === categoryId) {
@@ -267,6 +289,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       addCategory,
       updateCategory,
       deleteCategory,
+      moveCategoryUp,
+      moveCategoryDown,
       addSubcategory,
       updateSubcategory,
       deleteSubcategory,
