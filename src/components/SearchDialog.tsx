@@ -139,7 +139,7 @@ export function SearchDialog({ open, onOpenChange, onNavigate }: SearchDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 gap-0">
+      <DialogContent className="max-w-lg p-0 gap-0 [&>button]:hidden">
         <DialogHeader className="p-4 pb-2">
           <DialogTitle className="sr-only">Search</DialogTitle>
           <div className="relative">
@@ -148,7 +148,7 @@ export function SearchDialog({ open, onOpenChange, onNavigate }: SearchDialogPro
               placeholder="Search categories, topics, commands..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 pr-4"
               autoFocus
             />
           </div>
