@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText, ChevronUp } from 'lucide-react';
+import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText, ChevronUp, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Category, Subcategory, Topic } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,7 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SidebarProps {
   categories: Category[];
@@ -53,6 +60,7 @@ export function Sidebar({
 }: SidebarProps) {
   const { isAdmin } = useAuth();
   const { addCategory, updateCategory, deleteCategory, moveCategoryUp, moveCategoryDown, addSubcategory, updateSubcategory, deleteSubcategory, addTopic } = useData();
+  const isMobileDevice = useIsMobile();
   
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedSubcategories, setExpandedSubcategories] = useState<Set<string>>(new Set());
@@ -170,55 +178,45 @@ export function Sidebar({
                 <span className="truncate">{category.name}</span>
               </div>
               {isAdmin && (
-                <div className="hidden group-hover:flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => moveCategoryUp(category.id)}
-                    title="Move up"
-                  >
-                    <ChevronUp className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => moveCategoryDown(category.id)}
-                    title="Move down"
-                  >
-                    <ChevronDown className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => {
-                      setAddingSubcategory(category.id);
-                      setExpandedCategories(new Set([...expandedCategories, category.id]));
-                    }}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => {
-                      setEditingCategory(category);
-                      setCategoryForm({ name: category.name, description: category.description, icon: category.icon });
-                    }}
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-destructive hover:text-destructive"
-                    onClick={() => handleDeleteCategory(category.id)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                <div className="hidden group-hover:flex items-center" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <MoreVertical className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-popover">
+                      <DropdownMenuItem onClick={() => moveCategoryUp(category.id)}>
+                        <ChevronUp className="h-3 w-3 mr-2" />
+                        Move Up
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => moveCategoryDown(category.id)}>
+                        <ChevronDown className="h-3 w-3 mr-2" />
+                        Move Down
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        setAddingSubcategory(category.id);
+                        setExpandedCategories(new Set([...expandedCategories, category.id]));
+                      }}>
+                        <Plus className="h-3 w-3 mr-2" />
+                        Add Subcategory
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => {
+                        setEditingCategory(category);
+                        setCategoryForm({ name: category.name, description: category.description, icon: category.icon });
+                      }}>
+                        <Pencil className="h-3 w-3 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => handleDeleteCategory(category.id)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               )}
             </div>
@@ -243,37 +241,37 @@ export function Sidebar({
                         <span className="truncate text-sm">{subcategory.name}</span>
                       </div>
                       {isAdmin && (
-                        <div className="hidden group-hover:flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5"
-                            onClick={() => {
-                              setAddingTopic({ categoryId: category.id, subcategoryId: subcategory.id });
-                              setExpandedSubcategories(new Set([...expandedSubcategories, subcategory.id]));
-                            }}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5"
-                            onClick={() => {
-                              setEditingSubcategory({ categoryId: category.id, subcategory });
-                              setSubcategoryForm({ name: subcategory.name, description: subcategory.description });
-                            }}
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteSubcategory(category.id, subcategory.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                        <div className="hidden group-hover:flex items-center" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-5 w-5">
+                                <MoreVertical className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-popover">
+                              <DropdownMenuItem onClick={() => {
+                                setAddingTopic({ categoryId: category.id, subcategoryId: subcategory.id });
+                                setExpandedSubcategories(new Set([...expandedSubcategories, subcategory.id]));
+                              }}>
+                                <Plus className="h-3 w-3 mr-2" />
+                                Add Topic
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setEditingSubcategory({ categoryId: category.id, subcategory });
+                                setSubcategoryForm({ name: subcategory.name, description: subcategory.description });
+                              }}>
+                                <Pencil className="h-3 w-3 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => handleDeleteSubcategory(category.id, subcategory.id)}
+                              >
+                                <Trash2 className="h-3 w-3 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       )}
                     </div>
