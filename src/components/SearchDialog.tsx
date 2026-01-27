@@ -1,14 +1,16 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, FileText, FolderOpen, Folder, Code } from 'lucide-react';
+import { Search, FileText, FolderOpen, Folder, Code, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useData } from '@/contexts/DataContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 
 interface SearchResult {
   type: 'category' | 'subcategory' | 'topic' | 'command';
@@ -140,8 +142,23 @@ export function SearchDialog({ open, onOpenChange, onNavigate }: SearchDialogPro
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg p-0 gap-0 [&>button]:hidden">
-        <DialogHeader className="p-4 pb-2">
-          <DialogTitle className="sr-only">Search</DialogTitle>
+        <DialogHeader className="p-4 pb-2 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle className="text-sm font-medium">Search</DialogTitle>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => onOpenChange(false)}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </Button>
+          </div>
+          <DialogDescription className="sr-only">
+            Search categories, subcategories, topics, and commands.
+          </DialogDescription>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
