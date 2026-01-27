@@ -150,7 +150,7 @@ export function Sidebar({
 
   return (
     <aside className={`${isMobile ? 'w-full h-full' : 'w-80 hidden lg:flex'} border-r border-border bg-card/50 flex flex-col h-[calc(100vh-4rem)]`}>
-      <div className="p-4 border-b border-border flex items-center justify-between">
+      <div className={`p-4 border-b border-border flex items-center justify-between ${isMobile ? 'pr-14' : ''}`}> 
         <h2 className="font-semibold">Categories</h2>
         {isAdmin && (
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setAddingCategory(true)}>

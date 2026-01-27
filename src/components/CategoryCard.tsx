@@ -1,7 +1,14 @@
-import { Server, Network, HardDrive, Shield, Folder, Settings, Pencil, Trash2 } from 'lucide-react';
+import { Server, Network, HardDrive, Shield, Folder, Settings, Pencil, Trash2, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Category } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   server: Server,
@@ -22,6 +29,7 @@ interface CategoryCardProps {
 
 export function CategoryCard({ category, isSelected, onClick, onEdit, onDelete }: CategoryCardProps) {
   const { isAdmin } = useAuth();
+  const isMobile = useIsMobile();
   const Icon = iconMap[category.icon] || Folder;
 
   return (
@@ -41,12 +49,43 @@ export function CategoryCard({ category, isSelected, onClick, onEdit, onDelete }
         </div>
         {isAdmin && (
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={onDelete}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {isMobile ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreVertical className="h-4 w-4" />
+                    <span className="sr-only">Category actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-popover z-50">
+                  <DropdownMenuItem onClick={onEdit}>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={onDelete}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  onClick={onDelete}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
           </div>
         )}
       </div>

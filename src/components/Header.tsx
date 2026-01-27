@@ -1,9 +1,10 @@
-import { Terminal, Sun, Moon, LogIn, LogOut, Download, Upload, Shield, Settings, Key, FileKey, RotateCcw, Search } from 'lucide-react';
+import { Terminal, Sun, Moon, LogIn, LogOut, Download, Upload, Shield, Settings, Key, FileKey, RotateCcw, Search, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { useState, useRef } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,12 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +44,7 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { isAdmin, login, loginWithFile, logout, changePassword, resetToDefault, generateAuthFile, isDefaultPassword } = useAuth();
   const { exportData, importData } = useData();
+  const isMobile = useIsMobile();
   const [password, setPassword] = useState('');
   const [loginOpen, setLoginOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -166,170 +174,229 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
             </span>
           )}
 
-          <Button variant="ghost" size="icon" onClick={onOpenSearch} className="h-8 w-8 sm:h-9 sm:w-9">
-            <Search className="h-4 w-4" />
-          </Button>
-
-          <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 sm:h-9 sm:w-9">
-            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
-
-          <Button variant="ghost" size="icon" onClick={handleExport} className="h-8 w-8 sm:h-9 sm:w-9">
-            <Download className="h-4 w-4" />
-          </Button>
-
           {isAdmin && (
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleImport}
+              className="hidden"
+            />
+          )}
+
+          {isMobile ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <MoreVertical className="h-4 w-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-popover z-50">
+                <DropdownMenuItem onClick={() => onOpenSearch?.()}>
+                  <Search className="h-4 w-4 mr-2" />
+                  Search
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={toggleTheme}>
+                  {theme === 'dark' ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
+                  Toggle theme
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExport}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </DropdownMenuItem>
+                {isAdmin ? (
+                  <>
+                    <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Admin settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={logout}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <DropdownMenuItem onClick={() => setLoginOpen(true)}>
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Admin login
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
             <>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json"
-                onChange={handleImport}
-                className="hidden"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-                className="h-9 w-9"
-              >
-                <Upload className="h-4 w-4" />
+              <Button variant="ghost" size="icon" onClick={onOpenSearch} className="h-8 w-8 sm:h-9 sm:w-9">
+                <Search className="h-4 w-4" />
               </Button>
 
-              {/* Admin Settings */}
-              <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+              <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 sm:h-9 sm:w-9">
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+
+              <Button variant="ghost" size="icon" onClick={handleExport} className="h-8 w-8 sm:h-9 sm:w-9">
+                <Download className="h-4 w-4" />
+              </Button>
+
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-9 w-9"
+                >
+                  <Upload className="h-4 w-4" />
+                </Button>
+              )}
+            </>
+          )}
+
+          {isAdmin && (
+            <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+              {!isMobile && (
                 <DialogTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-9 w-9">
                     <Settings className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <Settings className="h-5 w-5 text-primary" />
-                      Admin Settings
-                    </DialogTitle>
-                    <DialogDescription>
-                      Manage your admin password and authentication
-                    </DialogDescription>
-                  </DialogHeader>
-                  <Tabs defaultValue="password" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="password">Password</TabsTrigger>
-                      <TabsTrigger value="authfile">Auth File</TabsTrigger>
-                      <TabsTrigger value="reset">Reset</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="password" className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="current">Current Password</Label>
-                        <Input
-                          id="current"
-                          type="password"
-                          placeholder="Enter current password"
-                          value={currentPwd}
-                          onChange={(e) => setCurrentPwd(e.target.value)}
-                        />
+              )}
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5 text-primary" />
+                    Admin Settings
+                  </DialogTitle>
+                  <DialogDescription>
+                    Manage your admin password and authentication
+                  </DialogDescription>
+                </DialogHeader>
+                <Tabs defaultValue="password" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="password">Password</TabsTrigger>
+                    <TabsTrigger value="authfile">Auth File</TabsTrigger>
+                    <TabsTrigger value="reset">Reset</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="password" className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="current">Current Password</Label>
+                      <Input
+                        id="current"
+                        type="password"
+                        placeholder="Enter current password"
+                        value={currentPwd}
+                        onChange={(e) => setCurrentPwd(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new">New Password</Label>
+                      <Input
+                        id="new"
+                        type="password"
+                        placeholder="Enter new password (min 6 chars)"
+                        value={newPwd}
+                        onChange={(e) => setNewPwd(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm">Confirm Password</Label>
+                      <Input
+                        id="confirm"
+                        type="password"
+                        placeholder="Confirm new password"
+                        value={confirmPwd}
+                        onChange={(e) => setConfirmPwd(e.target.value)}
+                      />
+                    </div>
+                    <Button onClick={handleChangePassword} className="w-full gap-2">
+                      <Key className="h-4 w-4" />
+                      Change Password
+                    </Button>
+                  </TabsContent>
+                  <TabsContent value="authfile" className="space-y-4 py-4">
+                    <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <FileKey className="h-4 w-4 text-primary" />
+                        Encrypted Auth File
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="new">New Password</Label>
-                        <Input
-                          id="new"
-                          type="password"
-                          placeholder="Enter new password (min 6 chars)"
-                          value={newPwd}
-                          onChange={(e) => setNewPwd(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="confirm">Confirm Password</Label>
-                        <Input
-                          id="confirm"
-                          type="password"
-                          placeholder="Confirm new password"
-                          value={confirmPwd}
-                          onChange={(e) => setConfirmPwd(e.target.value)}
-                        />
-                      </div>
-                      <Button onClick={handleChangePassword} className="w-full gap-2">
-                        <Key className="h-4 w-4" />
-                        Change Password
-                      </Button>
-                    </TabsContent>
-                    <TabsContent value="authfile" className="space-y-4 py-4">
-                      <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3">
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <FileKey className="h-4 w-4 text-primary" />
-                          Encrypted Auth File
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Generate an encrypted authentication file to login from another device without typing your password. Keep this file secure!
-                        </p>
-                        <Button onClick={handleGenerateAuthFile} className="w-full gap-2">
-                          <Download className="h-4 w-4" />
-                          Generate Auth File
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground text-center">
-                        Note: If you change your password, you'll need to generate a new auth file.
+                      <p className="text-xs text-muted-foreground">
+                        Generate an encrypted authentication file to login from another device without typing your password. Keep this file secure!
                       </p>
-                    </TabsContent>
-                    <TabsContent value="reset" className="space-y-4 py-4">
-                      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 space-y-3">
-                        <div className="flex items-center gap-2 text-sm font-medium text-destructive">
-                          <RotateCcw className="h-4 w-4" />
-                          Reset to Default Password
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          If you've forgotten your password or lost your auth file, you can reset to the default password. You will be logged out.
-                        </p>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="w-full gap-2">
-                              <RotateCcw className="h-4 w-4" />
-                              Reset Password
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will reset your admin password to the default value and log you out. Any existing auth files will become invalid.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={handleResetToDefault}>
-                                Reset Password
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                      <Button onClick={handleGenerateAuthFile} className="w-full gap-2">
+                        <Download className="h-4 w-4" />
+                        Generate Auth File
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Note: If you change your password, you'll need to generate a new auth file.
+                    </p>
+                  </TabsContent>
+                  <TabsContent value="reset" className="space-y-4 py-4">
+                    <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium text-destructive">
+                        <RotateCcw className="h-4 w-4" />
+                        Reset to Default Password
                       </div>
-                      {isDefaultPassword && (
-                        <p className="text-xs text-center text-destructive">
-                          ⚠️ You're using the default password. Consider changing it for security.
-                        </p>
-                      )}
-                    </TabsContent>
-                  </Tabs>
-                </DialogContent>
-              </Dialog>
-            </>
+                      <p className="text-xs text-muted-foreground">
+                        If you've forgotten your password or lost your auth file, you can reset to the default password. You will be logged out.
+                      </p>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" className="w-full gap-2">
+                            <RotateCcw className="h-4 w-4" />
+                            Reset Password
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will reset your admin password to the default value and log you out. Any existing auth files will become invalid.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleResetToDefault}>
+                              Reset Password
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                    {isDefaultPassword && (
+                      <p className="text-xs text-center text-destructive">
+                        ⚠️ You're using the default password. Consider changing it for security.
+                      </p>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </DialogContent>
+            </Dialog>
           )}
 
           {isAdmin ? (
-            <Button variant="ghost" size="sm" onClick={logout} className="gap-2">
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
+            !isMobile && (
+              <Button variant="ghost" size="sm" onClick={logout} className="gap-2">
+                <LogOut className="h-4 w-4" />
+                Logout
+              </Button>
+            )
           ) : (
             <Dialog open={loginOpen} onOpenChange={setLoginOpen}>
-              <DialogTrigger asChild>
-                <Button variant="default" size="sm" className="gap-2">
-                  <LogIn className="h-4 w-4" />
-                  Admin Login
-                </Button>
-              </DialogTrigger>
+              {!isMobile && (
+                <DialogTrigger asChild>
+                  <Button variant="default" size="sm" className="gap-2">
+                    <LogIn className="h-4 w-4" />
+                    Admin Login
+                  </Button>
+                </DialogTrigger>
+              )}
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
@@ -375,8 +442,8 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                         onChange={handleFileLogin}
                         className="hidden"
                       />
-                      <Button 
-                        onClick={() => authFileInputRef.current?.click()} 
+                      <Button
+                        onClick={() => authFileInputRef.current?.click()}
                         className="w-full gap-2"
                         variant="outline"
                       >
