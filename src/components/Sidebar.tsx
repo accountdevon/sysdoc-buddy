@@ -193,7 +193,7 @@ export function Sidebar({
                         <MoreVertical className="h-3 w-3" />
                       </Button>
                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="start" sideOffset={5} className="bg-popover z-50">
+                    <DropdownMenuContent side="right" align="start" sideOffset={5} className="bg-popover border-border z-[100] min-w-[160px]">
                       <DropdownMenuItem onClick={() => moveCategoryUp(category.id)}>
                         <ChevronUp className="h-3 w-3 mr-2" />
                         Move Up
@@ -256,7 +256,7 @@ export function Sidebar({
                                 <MoreVertical className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="start" sideOffset={5} className="bg-popover z-50">
+                                            <DropdownMenuContent side="right" align="start" sideOffset={5} className="bg-popover border-border z-[100] min-w-[160px]">
                                               <DropdownMenuItem onClick={() => handleMoveSubcategoryUp(category.id, subcategory.id)}>
                                                 <ChevronUp className="h-3 w-3 mr-2" />
                                                 Move Up

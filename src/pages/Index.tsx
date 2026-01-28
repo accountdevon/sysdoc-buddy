@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { MainContent } from '@/components/MainContent';
 import { MobileNav } from '@/components/MobileNav';
 import { SearchDialog } from '@/components/SearchDialog';
 import { useData } from '@/contexts/DataContext';
+import { Button } from '@/components/ui/button';
+import { PanelLeftClose, PanelLeft } from 'lucide-react';
 
 const Index = () => {
   const { categories } = useData();
@@ -12,6 +14,7 @@ const Index = () => {
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string | null>(null);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
 
   const handleSelectCategory = (id: string) => {
     setSelectedCategoryId(id);
@@ -31,11 +34,11 @@ const Index = () => {
     setSelectedTopicId(topicId);
   };
 
-  const handleSearchNavigate = (categoryId: string, subcategoryId?: string, topicId?: string) => {
+  const handleSearchNavigate = useCallback((categoryId: string, subcategoryId?: string, topicId?: string) => {
     setSelectedCategoryId(categoryId);
     setSelectedSubcategoryId(subcategoryId || null);
     setSelectedTopicId(topicId || null);
-  };
+  }, []);
 
   const handleBack = () => {
     if (selectedTopicId) {
@@ -46,6 +49,19 @@ const Index = () => {
       setSelectedCategoryId(null);
     }
   };
+
+  // Ctrl+F keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -69,16 +85,32 @@ const Index = () => {
         onNavigate={handleSearchNavigate}
       />
       <div className="flex">
-        <Sidebar
-          categories={categories}
-          selectedCategoryId={selectedCategoryId}
-          selectedSubcategoryId={selectedSubcategoryId}
-          selectedTopicId={selectedTopicId}
-          onSelectCategory={handleSelectCategory}
-          onSelectSubcategory={handleSelectSubcategory}
-          onSelectTopic={handleSelectTopic}
-        />
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto h-[calc(100vh-4rem)]">
+        {/* Sidebar Toggle Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="fixed left-2 top-20 z-40 hidden lg:flex h-8 w-8 rounded-lg bg-card border border-border shadow-sm hover:bg-secondary"
+          onClick={() => setSidebarVisible(!sidebarVisible)}
+        >
+          {sidebarVisible ? (
+            <PanelLeftClose className="h-4 w-4" />
+          ) : (
+            <PanelLeft className="h-4 w-4" />
+          )}
+        </Button>
+
+        {sidebarVisible && (
+          <Sidebar
+            categories={categories}
+            selectedCategoryId={selectedCategoryId}
+            selectedSubcategoryId={selectedSubcategoryId}
+            selectedTopicId={selectedTopicId}
+            onSelectCategory={handleSelectCategory}
+            onSelectSubcategory={handleSelectSubcategory}
+            onSelectTopic={handleSelectTopic}
+          />
+        )}
+        <main className={`flex-1 p-4 md:p-6 overflow-y-auto h-[calc(100vh-4rem)] ${sidebarVisible ? '' : 'lg:ml-0'}`}>
           <MainContent
             categories={categories}
             selectedCategoryId={selectedCategoryId}
