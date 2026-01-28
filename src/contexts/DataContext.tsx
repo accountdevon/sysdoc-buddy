@@ -11,6 +11,8 @@ interface DataContextType {
   addSubcategory: (categoryId: string, subcategory: Omit<Subcategory, 'id' | 'topics'>) => void;
   updateSubcategory: (categoryId: string, subcategoryId: string, updates: Partial<Subcategory>) => void;
   deleteSubcategory: (categoryId: string, subcategoryId: string) => void;
+  moveSubcategoryUp: (categoryId: string, subcategoryId: string) => void;
+  moveSubcategoryDown: (categoryId: string, subcategoryId: string) => void;
   addTopic: (categoryId: string, subcategoryId: string, topic: Omit<Topic, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateTopic: (categoryId: string, subcategoryId: string, topicId: string, updates: Partial<Topic>) => void;
   deleteTopic: (categoryId: string, subcategoryId: string, topicId: string) => void;
@@ -198,6 +200,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const moveSubcategoryUp = (categoryId: string, subcategoryId: string) => {
+    setCategories(prev => prev.map(cat => {
+      if (cat.id === categoryId) {
+        const index = cat.subcategories.findIndex(sub => sub.id === subcategoryId);
+        if (index <= 0) return cat;
+        const newSubcategories = [...cat.subcategories];
+        [newSubcategories[index - 1], newSubcategories[index]] = [newSubcategories[index], newSubcategories[index - 1]];
+        return { ...cat, subcategories: newSubcategories };
+      }
+      return cat;
+    }));
+  };
+
+  const moveSubcategoryDown = (categoryId: string, subcategoryId: string) => {
+    setCategories(prev => prev.map(cat => {
+      if (cat.id === categoryId) {
+        const index = cat.subcategories.findIndex(sub => sub.id === subcategoryId);
+        if (index === -1 || index >= cat.subcategories.length - 1) return cat;
+        const newSubcategories = [...cat.subcategories];
+        [newSubcategories[index], newSubcategories[index + 1]] = [newSubcategories[index + 1], newSubcategories[index]];
+        return { ...cat, subcategories: newSubcategories };
+      }
+      return cat;
+    }));
+  };
+
   const addTopic = (categoryId: string, subcategoryId: string, topic: Omit<Topic, 'id' | 'createdAt' | 'updatedAt'>) => {
     const now = new Date().toISOString();
     setCategories(prev => prev.map(cat => {
@@ -294,6 +322,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       addSubcategory,
       updateSubcategory,
       deleteSubcategory,
+      moveSubcategoryUp,
+      moveSubcategoryDown,
       addTopic,
       updateTopic,
       deleteTopic,
