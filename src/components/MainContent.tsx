@@ -1,8 +1,36 @@
+import { useState } from 'react';
 import { Category, Subcategory, Topic } from '@/types';
 import { CategoryCard } from './CategoryCard';
 import { TopicView } from './TopicView';
-import { Terminal, FileText, FolderOpen } from 'lucide-react';
+import { Terminal, FileText, FolderOpen, Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useData } from '@/contexts/DataContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
+
+const iconOptions = [
+  { value: 'server', label: 'Server' },
+  { value: 'network', label: 'Network' },
+  { value: 'storage', label: 'Storage' },
+  { value: 'security', label: 'Security' },
+  { value: 'folder', label: 'Folder' },
+  { value: 'settings', label: 'Settings' },
+];
 
 interface MainContentProps {
   categories: Category[];
@@ -26,11 +54,21 @@ export function MainContent({
   onBack
 }: MainContentProps) {
   const { isAdmin } = useAuth();
+  const { addCategory } = useData();
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({ name: '', description: '', icon: 'folder' });
 
   // Find selected items
   const selectedCategory = categories.find(c => c.id === selectedCategoryId);
   const selectedSubcategory = selectedCategory?.subcategories.find(s => s.id === selectedSubcategoryId);
   const selectedTopic = selectedSubcategory?.topics.find(t => t.id === selectedTopicId);
+
+  const handleAddCategory = () => {
+    addCategory(categoryForm);
+    setAddingCategory(false);
+    setCategoryForm({ name: '', description: '', icon: 'folder' });
+    toast.success('Category added');
+  };
 
   // If viewing a topic
   if (selectedTopic && selectedCategoryId && selectedSubcategoryId) {
@@ -129,21 +167,34 @@ export function MainContent({
   // Default: show all categories
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 terminal-border">
-          <Terminal className="h-6 w-6 text-primary" />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 terminal-border">
+            <Terminal className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold">Linux Command Reference</h2>
+            <p className="text-muted-foreground">Your personal collection of Linux commands and configurations</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-2xl font-semibold">Linux Command Reference</h2>
-          <p className="text-muted-foreground">Your personal collection of Linux commands and configurations</p>
-        </div>
+        {isAdmin && (
+          <Button onClick={() => setAddingCategory(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add Category</span>
+          </Button>
+        )}
       </div>
 
       {categories.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Terminal className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>No categories yet.</p>
-          {isAdmin && <p className="text-sm mt-2">Click the + button in the sidebar to create your first category.</p>}
+          {isAdmin && (
+            <Button onClick={() => setAddingCategory(true)} className="mt-4 gap-2">
+              <Plus className="h-4 w-4" />
+              Create your first category
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -157,6 +208,38 @@ export function MainContent({
           ))}
         </div>
       )}
+
+      {/* Add Category Dialog */}
+      <Dialog open={addingCategory} onOpenChange={setAddingCategory}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Category</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Input
+              placeholder="Category name"
+              value={categoryForm.name}
+              onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+            />
+            <Textarea
+              placeholder="Description"
+              value={categoryForm.description}
+              onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+            />
+            <Select value={categoryForm.icon} onValueChange={(v) => setCategoryForm({ ...categoryForm, icon: v })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select icon" />
+              </SelectTrigger>
+              <SelectContent>
+                {iconOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleAddCategory} className="w-full">Add Category</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

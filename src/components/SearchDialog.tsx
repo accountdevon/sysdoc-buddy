@@ -1,16 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, FileText, FolderOpen, Folder, Code, X } from 'lucide-react';
+import { Search, FileText, FolderOpen, Folder, Code } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useData } from '@/contexts/DataContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
 
 interface SearchResult {
   type: 'category' | 'subcategory' | 'topic' | 'command';
@@ -141,62 +137,55 @@ export function SearchDialog({ open, onOpenChange, onNavigate }: SearchDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-0 gap-0 [&>button]:hidden">
-        <DialogHeader className="p-4 pb-2 space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <DialogTitle className="text-sm font-medium">Search</DialogTitle>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => onOpenChange(false)}
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </Button>
-          </div>
-          <DialogDescription className="sr-only">
-            Search categories, subcategories, topics, and commands.
-          </DialogDescription>
+      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden bg-card border-border shadow-2xl">
+        {/* Search Input */}
+        <div className="border-b border-border p-4 bg-card/80">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               placeholder="Search categories, topics, commands..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="pl-10 pr-4"
+              className="pl-12 pr-4 h-12 text-base bg-secondary/50 border-border focus:border-primary focus:ring-1 focus:ring-primary"
               autoFocus
             />
           </div>
-        </DialogHeader>
+          <p className="text-xs text-muted-foreground mt-2">
+            Press <kbd className="px-1.5 py-0.5 rounded bg-secondary text-xs font-mono">Esc</kbd> to close
+          </p>
+        </div>
         
-        <ScrollArea className="max-h-[60vh]">
+        {/* Results */}
+        <ScrollArea className="max-h-[50vh] min-h-[200px]">
           {query.trim() && results.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
-              No results found for "{query}"
+            <div className="p-12 text-center">
+              <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+              <p className="text-muted-foreground">No results found for "{query}"</p>
+              <p className="text-sm text-muted-foreground/70 mt-1">Try different keywords</p>
             </div>
           ) : results.length > 0 ? (
-            <div className="p-2">
+            <div className="p-2 space-y-1">
               {results.map((result) => (
                 <button
                   key={`${result.type}-${result.id}`}
                   onClick={() => handleSelect(result)}
-                  className="w-full text-left p-3 rounded-lg hover:bg-secondary/50 transition-colors flex items-start gap-3"
+                  className="w-full text-left p-3 rounded-lg hover:bg-secondary/70 transition-colors flex items-start gap-3 group"
                 >
-                  <div className="mt-0.5">{getIcon(result.type)}</div>
+                  <div className="mt-0.5 p-2 rounded-md bg-secondary group-hover:bg-primary/10">
+                    {getIcon(result.type)}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium truncate">{result.title}</span>
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground shrink-0">
                         {getTypeLabel(result.type)}
                       </span>
                     </div>
-                    <div className="text-xs text-muted-foreground truncate mt-0.5">
+                    <div className="text-xs text-muted-foreground truncate mt-1">
                       {result.path.join(' › ')}
                     </div>
                     {result.matchedText && (
-                      <div className="text-sm text-muted-foreground truncate mt-1">
+                      <div className="text-sm text-muted-foreground/80 truncate mt-1.5 font-mono text-xs">
                         {result.matchedText}
                       </div>
                     )}
@@ -205,8 +194,14 @@ export function SearchDialog({ open, onOpenChange, onNavigate }: SearchDialogPro
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center text-muted-foreground">
-              Type to search...
+            <div className="p-12 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-secondary/50 flex items-center justify-center">
+                <Search className="h-8 w-8 text-muted-foreground/50" />
+              </div>
+              <p className="text-muted-foreground">Start typing to search</p>
+              <p className="text-sm text-muted-foreground/70 mt-1">
+                Find categories, topics, and commands
+              </p>
             </div>
           )}
         </ScrollArea>

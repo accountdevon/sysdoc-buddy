@@ -59,7 +59,7 @@ export function Sidebar({
   isMobile = false
 }: SidebarProps) {
   const { isAdmin } = useAuth();
-  const { addCategory, updateCategory, deleteCategory, moveCategoryUp, moveCategoryDown, addSubcategory, updateSubcategory, deleteSubcategory, addTopic } = useData();
+  const { addCategory, updateCategory, deleteCategory, moveCategoryUp, moveCategoryDown, addSubcategory, updateSubcategory, deleteSubcategory, moveSubcategoryUp, moveSubcategoryDown, addTopic } = useData();
   const isMobileDevice = useIsMobile();
   
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -140,6 +140,14 @@ export function Sidebar({
     }
   };
 
+  const handleMoveSubcategoryUp = (categoryId: string, subcategoryId: string) => {
+    moveSubcategoryUp(categoryId, subcategoryId);
+  };
+
+  const handleMoveSubcategoryDown = (categoryId: string, subcategoryId: string) => {
+    moveSubcategoryDown(categoryId, subcategoryId);
+  };
+
   const handleAddTopic = () => {
     if (!addingTopic) return;
     addTopic(addingTopic.categoryId, addingTopic.subcategoryId, { ...topicForm, notes: '', codeBlocks: [] });
@@ -185,7 +193,7 @@ export function Sidebar({
                         <MoreVertical className="h-3 w-3" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-popover">
+                                    <DropdownMenuContent align="start" sideOffset={5} className="bg-popover z-50">
                       <DropdownMenuItem onClick={() => moveCategoryUp(category.id)}>
                         <ChevronUp className="h-3 w-3 mr-2" />
                         Move Up
@@ -248,29 +256,37 @@ export function Sidebar({
                                 <MoreVertical className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-popover">
-                              <DropdownMenuItem onClick={() => {
-                                setAddingTopic({ categoryId: category.id, subcategoryId: subcategory.id });
-                                setExpandedSubcategories(new Set([...expandedSubcategories, subcategory.id]));
-                              }}>
-                                <Plus className="h-3 w-3 mr-2" />
-                                Add Topic
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => {
-                                setEditingSubcategory({ categoryId: category.id, subcategory });
-                                setSubcategoryForm({ name: subcategory.name, description: subcategory.description });
-                              }}>
-                                <Pencil className="h-3 w-3 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => handleDeleteSubcategory(category.id, subcategory.id)}
-                              >
-                                <Trash2 className="h-3 w-3 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
+                                            <DropdownMenuContent align="start" sideOffset={5} className="bg-popover z-50">
+                                              <DropdownMenuItem onClick={() => handleMoveSubcategoryUp(category.id, subcategory.id)}>
+                                                <ChevronUp className="h-3 w-3 mr-2" />
+                                                Move Up
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => handleMoveSubcategoryDown(category.id, subcategory.id)}>
+                                                <ChevronDown className="h-3 w-3 mr-2" />
+                                                Move Down
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => {
+                                                setAddingTopic({ categoryId: category.id, subcategoryId: subcategory.id });
+                                                setExpandedSubcategories(new Set([...expandedSubcategories, subcategory.id]));
+                                              }}>
+                                                <Plus className="h-3 w-3 mr-2" />
+                                                Add Topic
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem onClick={() => {
+                                                setEditingSubcategory({ categoryId: category.id, subcategory });
+                                                setSubcategoryForm({ name: subcategory.name, description: subcategory.description });
+                                              }}>
+                                                <Pencil className="h-3 w-3 mr-2" />
+                                                Edit
+                                              </DropdownMenuItem>
+                                              <DropdownMenuItem 
+                                                className="text-destructive focus:text-destructive"
+                                                onClick={() => handleDeleteSubcategory(category.id, subcategory.id)}
+                                              >
+                                                <Trash2 className="h-3 w-3 mr-2" />
+                                                Delete
+                                              </DropdownMenuItem>
+                                            </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
                       )}
