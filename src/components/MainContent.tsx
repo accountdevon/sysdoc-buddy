@@ -54,8 +54,9 @@ export function MainContent({
   onBack
 }: MainContentProps) {
   const { isAdmin } = useAuth();
-  const { addCategory } = useData();
+  const { addCategory, updateCategory, deleteCategory } = useData();
   const [addingCategory, setAddingCategory] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '', icon: 'folder' });
 
   // Find selected items
@@ -68,6 +69,21 @@ export function MainContent({
     setAddingCategory(false);
     setCategoryForm({ name: '', description: '', icon: 'folder' });
     toast.success('Category added');
+  };
+
+  const handleEditCategory = () => {
+    if (!editingCategory) return;
+    updateCategory(editingCategory.id, categoryForm);
+    setEditingCategory(null);
+    setCategoryForm({ name: '', description: '', icon: 'folder' });
+    toast.success('Category updated');
+  };
+
+  const handleDeleteCategory = (id: string) => {
+    if (confirm('Delete this category and all its contents?')) {
+      deleteCategory(id);
+      toast.success('Category deleted');
+    }
   };
 
   // If viewing a topic
@@ -204,6 +220,11 @@ export function MainContent({
               category={category}
               isSelected={false}
               onClick={() => onSelectCategory(category.id)}
+              onEdit={() => {
+                setEditingCategory(category);
+                setCategoryForm({ name: category.name, description: category.description, icon: category.icon });
+              }}
+              onDelete={() => handleDeleteCategory(category.id)}
             />
           ))}
         </div>
@@ -237,6 +258,38 @@ export function MainContent({
               </SelectContent>
             </Select>
             <Button onClick={handleAddCategory} className="w-full">Add Category</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Category Dialog */}
+      <Dialog open={!!editingCategory} onOpenChange={(open) => !open && setEditingCategory(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Category</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Input
+              placeholder="Category name"
+              value={categoryForm.name}
+              onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+            />
+            <Textarea
+              placeholder="Description"
+              value={categoryForm.description}
+              onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+            />
+            <Select value={categoryForm.icon} onValueChange={(v) => setCategoryForm({ ...categoryForm, icon: v })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select icon" />
+              </SelectTrigger>
+              <SelectContent>
+                {iconOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleEditCategory} className="w-full">Save Changes</Button>
           </div>
         </DialogContent>
       </Dialog>
