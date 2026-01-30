@@ -84,13 +84,31 @@ const Index = () => {
         onOpenChange={setSearchOpen}
         onNavigate={handleSearchNavigate}
       />
-      <div className="flex">
-        {/* Sidebar Toggle Button */}
+      <div className="flex relative">
+        {/* Sidebar with integrated toggle */}
+        <div className={`hidden lg:flex flex-col transition-all duration-300 ${sidebarVisible ? 'w-80' : 'w-0'}`}>
+          {sidebarVisible && (
+            <Sidebar
+              categories={categories}
+              selectedCategoryId={selectedCategoryId}
+              selectedSubcategoryId={selectedSubcategoryId}
+              selectedTopicId={selectedTopicId}
+              onSelectCategory={handleSelectCategory}
+              onSelectSubcategory={handleSelectSubcategory}
+              onSelectTopic={handleSelectTopic}
+            />
+          )}
+        </div>
+
+        {/* Sidebar Toggle Button - positioned at edge of sidebar */}
         <Button
           variant="ghost"
           size="icon"
-          className="fixed left-2 top-20 z-40 hidden lg:flex h-8 w-8 rounded-lg bg-card border border-border shadow-sm hover:bg-secondary"
+          className={`fixed top-20 z-50 hidden lg:flex h-8 w-8 rounded-lg bg-card border border-border shadow-md hover:bg-secondary transition-all duration-300 ${
+            sidebarVisible ? 'left-[19rem]' : 'left-2'
+          }`}
           onClick={() => setSidebarVisible(!sidebarVisible)}
+          title={sidebarVisible ? 'Hide sidebar' : 'Show sidebar'}
         >
           {sidebarVisible ? (
             <PanelLeftClose className="h-4 w-4" />
@@ -99,18 +117,7 @@ const Index = () => {
           )}
         </Button>
 
-        {sidebarVisible && (
-          <Sidebar
-            categories={categories}
-            selectedCategoryId={selectedCategoryId}
-            selectedSubcategoryId={selectedSubcategoryId}
-            selectedTopicId={selectedTopicId}
-            onSelectCategory={handleSelectCategory}
-            onSelectSubcategory={handleSelectSubcategory}
-            onSelectTopic={handleSelectTopic}
-          />
-        )}
-        <main className={`flex-1 p-4 md:p-6 overflow-y-auto h-[calc(100vh-4rem)] ${sidebarVisible ? '' : 'lg:ml-0'}`}>
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto h-[calc(100vh-4rem)]">
           <MainContent
             categories={categories}
             selectedCategoryId={selectedCategoryId}
