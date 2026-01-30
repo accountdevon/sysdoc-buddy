@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText, ChevronUp, MoreVertical } from 'lucide-react';
+import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText, ChevronUp, MoreVertical, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Category, Subcategory, Topic } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,6 +37,8 @@ interface SidebarProps {
   onSelectSubcategory: (categoryId: string, subcategoryId: string) => void;
   onSelectTopic: (categoryId: string, subcategoryId: string, topicId: string) => void;
   isMobile?: boolean;
+  sidebarVisible?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 const iconOptions = [
@@ -56,7 +58,9 @@ export function Sidebar({
   onSelectCategory,
   onSelectSubcategory,
   onSelectTopic,
-  isMobile = false
+  isMobile = false,
+  sidebarVisible = true,
+  onToggleSidebar
 }: SidebarProps) {
   const { isAdmin } = useAuth();
   const { addCategory, updateCategory, deleteCategory, moveCategoryUp, moveCategoryDown, addSubcategory, updateSubcategory, deleteSubcategory, moveSubcategoryUp, moveSubcategoryDown, addTopic } = useData();
@@ -156,15 +160,45 @@ export function Sidebar({
     toast.success('Topic added');
   };
 
+  // Don't render sidebar if hidden on desktop (but always show on mobile)
+  if (!sidebarVisible && !isMobile) {
+    return (
+      <div className="hidden lg:flex items-start pt-4 pl-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-lg bg-card border border-border shadow-sm hover:bg-secondary"
+          onClick={onToggleSidebar}
+          title="Show sidebar"
+        >
+          <PanelLeft className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <aside className={`${isMobile ? 'w-full h-full' : 'w-80 hidden lg:flex'} border-r border-border bg-card/50 flex flex-col h-[calc(100vh-4rem)]`}>
-      <div className={`p-4 border-b border-border flex items-center justify-between ${isMobile ? 'pr-14' : ''}`}> 
+      <div className={`p-4 border-b border-border flex items-center justify-between gap-2 ${isMobile ? 'pr-14' : ''}`}> 
         <h2 className="font-semibold">Categories</h2>
-        {isAdmin && (
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setAddingCategory(true)}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          {isAdmin && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setAddingCategory(true)}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          )}
+          {!isMobile && onToggleSidebar && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={onToggleSidebar}
+              title="Hide sidebar"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
       
       <div className="flex-1 overflow-y-auto scrollbar-thin p-2">
@@ -186,14 +220,14 @@ export function Sidebar({
                 <span className="truncate">{category.name}</span>
               </div>
               {isAdmin && (
-                <div className="hidden group-hover:flex items-center" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenu>
+                <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-6 w-6">
                         <MoreVertical className="h-3 w-3" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="start" sideOffset={5} className="bg-popover border-border z-[100] min-w-[160px]">
+                    <DropdownMenuContent align="end" sideOffset={5} className="bg-popover border-border z-[100] min-w-[160px]">
                       <DropdownMenuItem onClick={() => moveCategoryUp(category.id)}>
                         <ChevronUp className="h-3 w-3 mr-2" />
                         Move Up
@@ -249,14 +283,14 @@ export function Sidebar({
                         <span className="truncate text-sm">{subcategory.name}</span>
                       </div>
                       {isAdmin && (
-                        <div className="hidden group-hover:flex items-center" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenu>
+                        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu modal={false}>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-5 w-5">
                                 <MoreVertical className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent side="right" align="start" sideOffset={5} className="bg-popover border-border z-[100] min-w-[160px]">
+                            <DropdownMenuContent align="end" sideOffset={5} className="bg-popover border-border z-[100] min-w-[160px]">
                                               <DropdownMenuItem onClick={() => handleMoveSubcategoryUp(category.id, subcategory.id)}>
                                                 <ChevronUp className="h-3 w-3 mr-2" />
                                                 Move Up
