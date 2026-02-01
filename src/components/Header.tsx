@@ -1,4 +1,4 @@
-import { Terminal, Sun, Moon, LogIn, LogOut, Download, Upload, Shield, Settings, Key, FileKey, RotateCcw, Search, MoreVertical } from 'lucide-react';
+import { Terminal, Sun, Moon, LogIn, LogOut, Download, Upload, Shield, Settings, Key, FileKey, RotateCcw, Search, MoreVertical, Cloud, CloudDownload, CloudUpload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
@@ -43,7 +44,7 @@ interface HeaderProps {
 export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { isAdmin, login, loginWithFile, logout, changePassword, resetToDefault, generateAuthFile, isDefaultPassword } = useAuth();
-  const { exportData, importData } = useData();
+  const { exportData, importData, uploadToCloud, downloadFromCloud, isSyncing, lastSyncedAt } = useData();
   const isMobile = useIsMobile();
   const [password, setPassword] = useState('');
   const [loginOpen, setLoginOpen] = useState(false);
@@ -112,6 +113,24 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleUploadToCloud = async () => {
+    const success = await uploadToCloud();
+    if (success) {
+      toast.success('Data uploaded to cloud successfully');
+    } else {
+      toast.error('Failed to upload data to cloud');
+    }
+  };
+
+  const handleDownloadFromCloud = async () => {
+    const success = await downloadFromCloud();
+    if (success) {
+      toast.success('Data downloaded from cloud successfully');
+    } else {
+      toast.error('Failed to download data from cloud (no data found)');
     }
   };
 
@@ -201,60 +220,98 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                   {theme === 'dark' ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
                   Toggle theme
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExport}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </DropdownMenuItem>
-                {isAdmin ? (
-                  <>
-                    <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Import
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
-                      <Settings className="h-4 w-4 mr-2" />
-                      Admin settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={logout}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Logout
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <DropdownMenuItem onClick={() => setLoginOpen(true)}>
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Admin login
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleUploadToCloud} disabled={isSyncing}>
+                {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CloudUpload className="h-4 w-4 mr-2" />}
+                Upload to Cloud
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownloadFromCloud} disabled={isSyncing}>
+                {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CloudDownload className="h-4 w-4 mr-2" />}
+                Download from Cloud
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Export File
+              </DropdownMenuItem>
+              {isAdmin ? (
+                <>
+                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import File
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Admin settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={logout}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem onClick={() => setLoginOpen(true)}>
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Admin login
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <>
+            <Button variant="ghost" size="icon" onClick={onOpenSearch} className="h-8 w-8 sm:h-9 sm:w-9">
+              <Search className="h-4 w-4" />
+            </Button>
+
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 sm:h-9 sm:w-9">
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+
+            {/* Cloud Sync Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" disabled={isSyncing}>
+                  {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Cloud className="h-4 w-4" />}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleUploadToCloud} disabled={isSyncing}>
+                  <CloudUpload className="h-4 w-4 mr-2" />
+                  Upload to Cloud
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownloadFromCloud} disabled={isSyncing}>
+                  <CloudDownload className="h-4 w-4 mr-2" />
+                  Download from Cloud
+                </DropdownMenuItem>
+                {lastSyncedAt && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                      Last synced: {new Date(lastSyncedAt).toLocaleString()}
+                    </div>
+                  </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
-            <>
-              <Button variant="ghost" size="icon" onClick={onOpenSearch} className="h-8 w-8 sm:h-9 sm:w-9">
-                <Search className="h-4 w-4" />
-              </Button>
 
-              <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 sm:h-9 sm:w-9">
-                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
+            <Button variant="ghost" size="icon" onClick={handleExport} className="h-8 w-8 sm:h-9 sm:w-9">
+              <Download className="h-4 w-4" />
+            </Button>
 
-              <Button variant="ghost" size="icon" onClick={handleExport} className="h-8 w-8 sm:h-9 sm:w-9">
-                <Download className="h-4 w-4" />
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                className="h-9 w-9"
+              >
+                <Upload className="h-4 w-4" />
               </Button>
-
-              {isAdmin && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="h-9 w-9"
-                >
-                  <Upload className="h-4 w-4" />
-                </Button>
-              )}
+            )}
             </>
           )}
 

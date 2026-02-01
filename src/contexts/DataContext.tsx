@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Category, Subcategory, Topic, CodeBlock, AppData } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DataContextType {
   categories: Category[];
@@ -18,11 +19,17 @@ interface DataContextType {
   deleteTopic: (categoryId: string, subcategoryId: string, topicId: string) => void;
   exportData: () => string;
   importData: (jsonString: string) => boolean;
+  // Cloud sync
+  uploadToCloud: () => Promise<boolean>;
+  downloadFromCloud: () => Promise<boolean>;
+  isSyncing: boolean;
+  lastSyncedAt: string | null;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'linux_admin_data';
+const SYNC_KEY = 'linux_admin_last_synced';
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
 
@@ -109,6 +116,8 @@ const defaultData: Category[] = [
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -122,6 +131,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } else {
       setCategories(defaultData);
     }
+
+    const syncTime = localStorage.getItem(SYNC_KEY);
+    if (syncTime) {
+      setLastSyncedAt(syncTime);
+    }
   }, []);
 
   useEffect(() => {
@@ -129,6 +143,82 @@ export function DataProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(categories));
     }
   }, [categories]);
+
+  const uploadToCloud = async (): Promise<boolean> => {
+    setIsSyncing(true);
+    try {
+      // First, check if there's existing data
+      const { data: existingData } = await supabase
+        .from('app_data')
+        .select('id')
+        .limit(1)
+        .single();
+
+      const now = new Date().toISOString();
+
+      if (existingData) {
+        // Update existing row
+        const { error } = await supabase
+          .from('app_data')
+          .update({
+            data: categories as any,
+            updated_at: now
+          })
+          .eq('id', existingData.id);
+
+        if (error) throw error;
+      } else {
+        // Insert new row
+        const { error } = await supabase
+          .from('app_data')
+          .insert({
+            data: categories as any,
+            updated_at: now
+          });
+
+        if (error) throw error;
+      }
+
+      setLastSyncedAt(now);
+      localStorage.setItem(SYNC_KEY, now);
+      return true;
+    } catch (error) {
+      console.error('Upload to cloud failed:', error);
+      return false;
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const downloadFromCloud = async (): Promise<boolean> => {
+    setIsSyncing(true);
+    try {
+      const { data, error } = await supabase
+        .from('app_data')
+        .select('data, updated_at')
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+
+      if (data && data.data) {
+        const cloudCategories = data.data as unknown as Category[];
+        setCategories(cloudCategories);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudCategories));
+        
+        const syncTime = data.updated_at || new Date().toISOString();
+        setLastSyncedAt(syncTime);
+        localStorage.setItem(SYNC_KEY, syncTime);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Download from cloud failed:', error);
+      return false;
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const addCategory = (category: Omit<Category, 'id' | 'subcategories'>) => {
     setCategories(prev => [...prev, { ...category, id: generateId(), subcategories: [] }]);
@@ -328,7 +418,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       updateTopic,
       deleteTopic,
       exportData,
-      importData
+      importData,
+      uploadToCloud,
+      downloadFromCloud,
+      isSyncing,
+      lastSyncedAt
     }}>
       {children}
     </DataContext.Provider>
