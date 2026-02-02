@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Category, Subcategory, Topic, CodeBlock, AppData } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
 
 interface DataContextType {
   categories: Category[];
@@ -19,9 +18,11 @@ interface DataContextType {
   deleteTopic: (categoryId: string, subcategoryId: string, topicId: string) => void;
   exportData: () => string;
   importData: (jsonString: string) => boolean;
-  // Cloud sync
-  uploadToCloud: () => Promise<boolean>;
-  downloadFromCloud: () => Promise<boolean>;
+  // Google Drive sync
+  uploadToDrive: () => Promise<boolean>;
+  downloadFromDrive: () => Promise<boolean>;
+  setDriveScriptUrl: (url: string) => void;
+  driveScriptUrl: string | null;
   isSyncing: boolean;
   lastSyncedAt: string | null;
 }
@@ -30,6 +31,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'linux_admin_data';
 const SYNC_KEY = 'linux_admin_last_synced';
+const DRIVE_SCRIPT_URL_KEY = 'linux_admin_drive_script_url';
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
 
@@ -118,6 +120,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [driveScriptUrl, setDriveScriptUrlState] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -136,6 +139,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (syncTime) {
       setLastSyncedAt(syncTime);
     }
+
+    const scriptUrl = localStorage.getItem(DRIVE_SCRIPT_URL_KEY);
+    if (scriptUrl) {
+      setDriveScriptUrlState(scriptUrl);
+    }
   }, []);
 
   useEffect(() => {
@@ -144,76 +152,77 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [categories]);
 
-  const uploadToCloud = async (): Promise<boolean> => {
+  const setDriveScriptUrl = (url: string) => {
+    setDriveScriptUrlState(url);
+    localStorage.setItem(DRIVE_SCRIPT_URL_KEY, url);
+  };
+
+  const uploadToDrive = async (): Promise<boolean> => {
+    if (!driveScriptUrl) {
+      console.error('Google Apps Script URL not configured');
+      return false;
+    }
+
     setIsSyncing(true);
     try {
-      // First, check if there's existing data
-      const { data: existingData } = await supabase
-        .from('app_data')
-        .select('id')
-        .limit(1)
-        .single();
+      const exportData: AppData = {
+        categories,
+        version: '1.0.0',
+        exportedAt: new Date().toISOString()
+      };
 
+      const response = await fetch(driveScriptUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'upload', data: exportData }),
+      });
+
+      // With no-cors mode, we can't read the response, so we assume success
       const now = new Date().toISOString();
-
-      if (existingData) {
-        // Update existing row
-        const { error } = await supabase
-          .from('app_data')
-          .update({
-            data: categories as any,
-            updated_at: now
-          })
-          .eq('id', existingData.id);
-
-        if (error) throw error;
-      } else {
-        // Insert new row
-        const { error } = await supabase
-          .from('app_data')
-          .insert({
-            data: categories as any,
-            updated_at: now
-          });
-
-        if (error) throw error;
-      }
-
       setLastSyncedAt(now);
       localStorage.setItem(SYNC_KEY, now);
       return true;
     } catch (error) {
-      console.error('Upload to cloud failed:', error);
+      console.error('Upload to Drive failed:', error);
       return false;
     } finally {
       setIsSyncing(false);
     }
   };
 
-  const downloadFromCloud = async (): Promise<boolean> => {
+  const downloadFromDrive = async (): Promise<boolean> => {
+    if (!driveScriptUrl) {
+      console.error('Google Apps Script URL not configured');
+      return false;
+    }
+
     setIsSyncing(true);
     try {
-      const { data, error } = await supabase
-        .from('app_data')
-        .select('data, updated_at')
-        .limit(1)
-        .single();
+      const response = await fetch(`${driveScriptUrl}?action=download`, {
+        method: 'GET',
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to fetch from Drive');
+      }
 
-      if (data && data.data) {
-        const cloudCategories = data.data as unknown as Category[];
-        setCategories(cloudCategories);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudCategories));
+      const data: AppData = await response.json();
+      
+      if (data && data.categories) {
+        setCategories(data.categories);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.categories));
         
-        const syncTime = data.updated_at || new Date().toISOString();
+        const syncTime = data.exportedAt || new Date().toISOString();
         setLastSyncedAt(syncTime);
         localStorage.setItem(SYNC_KEY, syncTime);
         return true;
       }
       return false;
     } catch (error) {
-      console.error('Download from cloud failed:', error);
+      console.error('Download from Drive failed:', error);
       return false;
     } finally {
       setIsSyncing(false);
@@ -419,8 +428,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       deleteTopic,
       exportData,
       importData,
-      uploadToCloud,
-      downloadFromCloud,
+      uploadToDrive,
+      downloadFromDrive,
+      setDriveScriptUrl,
+      driveScriptUrl,
       isSyncing,
       lastSyncedAt
     }}>
