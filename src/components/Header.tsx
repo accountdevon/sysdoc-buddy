@@ -1,4 +1,4 @@
-import { Terminal, Sun, Moon, LogIn, LogOut, Download, Upload, Shield, Settings, Key, FileKey, RotateCcw, Search, MoreVertical, Cloud, CloudDownload, CloudUpload, Loader2 } from 'lucide-react';
+import { Terminal, Sun, Moon, LogIn, LogOut, Download, Upload, Shield, Settings, Key, FileKey, RotateCcw, Search, MoreVertical, CloudDownload, CloudUpload, Loader2, HardDrive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,11 +44,13 @@ interface HeaderProps {
 export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { isAdmin, login, loginWithFile, logout, changePassword, resetToDefault, generateAuthFile, isDefaultPassword } = useAuth();
-  const { exportData, importData, uploadToCloud, downloadFromCloud, isSyncing, lastSyncedAt } = useData();
+  const { exportData, importData, uploadToDrive, downloadFromDrive, setDriveScriptUrl, driveScriptUrl, isSyncing, lastSyncedAt } = useData();
   const isMobile = useIsMobile();
   const [password, setPassword] = useState('');
   const [loginOpen, setLoginOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [driveSettingsOpen, setDriveSettingsOpen] = useState(false);
+  const [scriptUrlInput, setScriptUrlInput] = useState('');
   const [currentPwd, setCurrentPwd] = useState('');
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
@@ -116,21 +118,41 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
     }
   };
 
-  const handleUploadToCloud = async () => {
-    const success = await uploadToCloud();
+  const handleUploadToDrive = async () => {
+    if (!driveScriptUrl) {
+      setDriveSettingsOpen(true);
+      toast.error('Please configure your Google Apps Script URL first');
+      return;
+    }
+    const success = await uploadToDrive();
     if (success) {
-      toast.success('Data uploaded to cloud successfully');
+      toast.success('Data uploaded to Google Drive');
     } else {
-      toast.error('Failed to upload data to cloud');
+      toast.error('Failed to upload data to Google Drive');
     }
   };
 
-  const handleDownloadFromCloud = async () => {
-    const success = await downloadFromCloud();
+  const handleDownloadFromDrive = async () => {
+    if (!driveScriptUrl) {
+      setDriveSettingsOpen(true);
+      toast.error('Please configure your Google Apps Script URL first');
+      return;
+    }
+    const success = await downloadFromDrive();
     if (success) {
-      toast.success('Data downloaded from cloud successfully');
+      toast.success('Data downloaded from Google Drive');
     } else {
-      toast.error('Failed to download data from cloud (no data found)');
+      toast.error('Failed to download data from Google Drive');
+    }
+  };
+
+  const handleSaveDriveScriptUrl = () => {
+    if (scriptUrlInput.trim()) {
+      setDriveScriptUrl(scriptUrlInput.trim());
+      setDriveSettingsOpen(false);
+      toast.success('Google Apps Script URL saved');
+    } else {
+      toast.error('Please enter a valid URL');
     }
   };
 
@@ -221,13 +243,17 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                   Toggle theme
                 </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleUploadToCloud} disabled={isSyncing}>
+              <DropdownMenuItem onClick={handleUploadToDrive} disabled={isSyncing}>
                 {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CloudUpload className="h-4 w-4 mr-2" />}
-                Upload to Cloud
+                Upload to Drive
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDownloadFromCloud} disabled={isSyncing}>
+              <DropdownMenuItem onClick={handleDownloadFromDrive} disabled={isSyncing}>
                 {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CloudDownload className="h-4 w-4 mr-2" />}
-                Download from Cloud
+                Download from Drive
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDriveSettingsOpen(true)}>
+                <Settings className="h-4 w-4 mr-2" />
+                Drive Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleExport}>
@@ -271,21 +297,26 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
 
-            {/* Cloud Sync Dropdown */}
+            {/* Google Drive Sync Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" disabled={isSyncing}>
-                  {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Cloud className="h-4 w-4" />}
+                  {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <HardDrive className="h-4 w-4" />}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleUploadToCloud} disabled={isSyncing}>
+                <DropdownMenuItem onClick={handleUploadToDrive} disabled={isSyncing}>
                   <CloudUpload className="h-4 w-4 mr-2" />
-                  Upload to Cloud
+                  Upload to Drive
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDownloadFromCloud} disabled={isSyncing}>
+                <DropdownMenuItem onClick={handleDownloadFromDrive} disabled={isSyncing}>
                   <CloudDownload className="h-4 w-4 mr-2" />
-                  Download from Cloud
+                  Download from Drive
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setDriveSettingsOpen(true)}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Drive Settings
                 </DropdownMenuItem>
                 {lastSyncedAt && (
                   <>
@@ -297,7 +328,6 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-
             <Button variant="ghost" size="icon" onClick={handleExport} className="h-8 w-8 sm:h-9 sm:w-9">
               <Download className="h-4 w-4" />
             </Button>
@@ -513,6 +543,46 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
               </DialogContent>
             </Dialog>
           )}
+
+          {/* Google Drive Settings Dialog */}
+          <Dialog open={driveSettingsOpen} onOpenChange={setDriveSettingsOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <HardDrive className="h-5 w-5 text-primary" />
+                  Google Drive Settings
+                </DialogTitle>
+                <DialogDescription>
+                  Configure your Google Apps Script URL for cloud sync
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="scriptUrl">Google Apps Script Web App URL</Label>
+                  <Input
+                    id="scriptUrl"
+                    type="url"
+                    placeholder="https://script.google.com/macros/s/..."
+                    value={scriptUrlInput}
+                    onChange={(e) => setScriptUrlInput(e.target.value)}
+                  />
+                </div>
+                {driveScriptUrl && (
+                  <div className="text-xs text-muted-foreground">
+                    Current URL: {driveScriptUrl.substring(0, 50)}...
+                  </div>
+                )}
+                <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    To use Google Drive sync, you need to create a Google Apps Script web app. The script should handle POST requests for upload and GET requests for download.
+                  </p>
+                </div>
+                <Button onClick={handleSaveDriveScriptUrl} className="w-full">
+                  Save URL
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </header>
