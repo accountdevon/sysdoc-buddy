@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText, ChevronUp, MoreVertical, PanelLeftClose, PanelLeft, Server, Network, HardDrive, Shield, Folder, Settings } from 'lucide-react';
+import { 
+  ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText, ChevronUp, MoreVertical, 
+  PanelLeftClose, PanelLeft, Server, Network, HardDrive, Shield, Folder, Settings,
+  Database, Cloud, Code, Terminal, Cpu, MemoryStick, Monitor, Globe, Lock, Key,
+  User, Users, File, Book, Layers, Box, Zap, Wrench
+} from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Category, Subcategory, Topic } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,9 +43,54 @@ const getCategoryIcon = (iconName: string) => {
     security: Shield,
     folder: Folder,
     settings: Settings,
+    database: Database,
+    cloud: Cloud,
+    code: Code,
+    terminal: Terminal,
+    cpu: Cpu,
+    memory: MemoryStick,
+    monitor: Monitor,
+    globe: Globe,
+    lock: Lock,
+    key: Key,
+    user: User,
+    users: Users,
+    file: File,
+    book: Book,
+    layers: Layers,
+    box: Box,
+    zap: Zap,
+    wrench: Wrench,
   };
   return iconMap[iconName] || Folder;
 };
+
+const iconOptions = [
+  { value: 'server', label: 'Server' },
+  { value: 'network', label: 'Network' },
+  { value: 'storage', label: 'Storage' },
+  { value: 'security', label: 'Security' },
+  { value: 'folder', label: 'Folder' },
+  { value: 'settings', label: 'Settings' },
+  { value: 'database', label: 'Database' },
+  { value: 'cloud', label: 'Cloud' },
+  { value: 'code', label: 'Code' },
+  { value: 'terminal', label: 'Terminal' },
+  { value: 'cpu', label: 'CPU' },
+  { value: 'memory', label: 'Memory' },
+  { value: 'monitor', label: 'Monitor' },
+  { value: 'globe', label: 'Globe' },
+  { value: 'lock', label: 'Lock' },
+  { value: 'key', label: 'Key' },
+  { value: 'user', label: 'User' },
+  { value: 'users', label: 'Users' },
+  { value: 'file', label: 'File' },
+  { value: 'book', label: 'Book' },
+  { value: 'layers', label: 'Layers' },
+  { value: 'box', label: 'Box' },
+  { value: 'zap', label: 'Zap' },
+  { value: 'wrench', label: 'Wrench' },
+];
 
 interface SidebarProps {
   categories: Category[];
@@ -53,15 +104,6 @@ interface SidebarProps {
   sidebarVisible?: boolean;
   onToggleSidebar?: () => void;
 }
-
-const iconOptions = [
-  { value: 'server', label: 'Server' },
-  { value: 'network', label: 'Network' },
-  { value: 'storage', label: 'Storage' },
-  { value: 'security', label: 'Security' },
-  { value: 'folder', label: 'Folder' },
-  { value: 'settings', label: 'Settings' },
-];
 
 export function Sidebar({
   categories,
