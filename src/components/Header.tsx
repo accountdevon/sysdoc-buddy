@@ -242,53 +242,35 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                   {theme === 'dark' ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
                   Toggle theme
                 </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {isAdmin && (
-                <DropdownMenuItem onClick={handleUploadToDrive} disabled={isSyncing}>
-                  {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CloudUpload className="h-4 w-4 mr-2" />}
-                  Upload to Drive
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={handleDownloadFromDrive} disabled={isSyncing}>
-                {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CloudDownload className="h-4 w-4 mr-2" />}
-                Download from Drive
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDriveSettingsOpen(true)}>
-                <Settings className="h-4 w-4 mr-2" />
-                Drive Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleExport}>
-                <Download className="h-4 w-4 mr-2" />
-                Export File
-              </DropdownMenuItem>
-              {isAdmin ? (
-                <>
-                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Import File
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
-                    <Settings className="h-4 w-4 mr-2" />
-                    Admin settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={logout}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </DropdownMenuItem>
-                </>
-              ) : (
-                <DropdownMenuItem onClick={() => setLoginOpen(true)}>
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Admin login
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuSeparator />
+                {isAdmin ? (
+                  <>
+                    <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={logout}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLoginOpen(true)}>
+                      <LogIn className="h-4 w-4 mr-2" />
+                      Admin login
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
         ) : (
           <>
             <Button variant="ghost" size="icon" onClick={onOpenSearch} className="h-8 w-8 sm:h-9 sm:w-9">
@@ -299,14 +281,15 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
 
-            {/* Google Drive Sync Dropdown */}
+            {/* Settings Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" disabled={isSyncing}>
-                  {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <HardDrive className="h-4 w-4" />}
+                  {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Settings className="h-4 w-4" />}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {/* Drive Sync Options */}
                 {isAdmin && (
                   <DropdownMenuItem onClick={handleUploadToDrive} disabled={isSyncing}>
                     <CloudUpload className="h-4 w-4 mr-2" />
@@ -317,11 +300,22 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                   <CloudDownload className="h-4 w-4 mr-2" />
                   Download from Drive
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setDriveSettingsOpen(true)}>
-                  <Settings className="h-4 w-4 mr-2" />
+                  <HardDrive className="h-4 w-4 mr-2" />
                   Drive Settings
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {/* JSON Import/Export */}
+                <DropdownMenuItem onClick={handleExport}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export JSON
+                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import JSON
+                  </DropdownMenuItem>
+                )}
                 {lastSyncedAt && (
                   <>
                     <DropdownMenuSeparator />
@@ -332,20 +326,6 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="ghost" size="icon" onClick={handleExport} className="h-8 w-8 sm:h-9 sm:w-9">
-              <Download className="h-4 w-4" />
-            </Button>
-
-            {isAdmin && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-                className="h-9 w-9"
-              >
-                <Upload className="h-4 w-4" />
-              </Button>
-            )}
             </>
           )}
 
