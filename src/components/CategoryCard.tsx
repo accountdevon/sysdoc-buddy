@@ -1,4 +1,8 @@
-import { Server, Network, HardDrive, Shield, Folder, Settings, Pencil, Trash2, MoreVertical } from 'lucide-react';
+import { 
+  Server, Network, HardDrive, Shield, Folder, Settings, Pencil, Trash2, MoreVertical,
+  Database, Cloud, Code, Terminal, Cpu, MemoryStick, Monitor, Globe, Lock, Key,
+  User, Users, File, Book, Layers, Box, Zap, Wrench
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Category } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +21,24 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   security: Shield,
   folder: Folder,
   settings: Settings,
+  database: Database,
+  cloud: Cloud,
+  code: Code,
+  terminal: Terminal,
+  cpu: Cpu,
+  memory: MemoryStick,
+  monitor: Monitor,
+  globe: Globe,
+  lock: Lock,
+  key: Key,
+  user: User,
+  users: Users,
+  file: File,
+  book: Book,
+  layers: Layers,
+  box: Box,
+  zap: Zap,
+  wrench: Wrench,
 };
 
 interface CategoryCardProps {
