@@ -243,10 +243,12 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                   Toggle theme
                 </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleUploadToDrive} disabled={isSyncing}>
-                {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CloudUpload className="h-4 w-4 mr-2" />}
-                Upload to Drive
-              </DropdownMenuItem>
+              {isAdmin && (
+                <DropdownMenuItem onClick={handleUploadToDrive} disabled={isSyncing}>
+                  {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CloudUpload className="h-4 w-4 mr-2" />}
+                  Upload to Drive
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={handleDownloadFromDrive} disabled={isSyncing}>
                 {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CloudDownload className="h-4 w-4 mr-2" />}
                 Download from Drive
@@ -305,10 +307,12 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleUploadToDrive} disabled={isSyncing}>
-                  <CloudUpload className="h-4 w-4 mr-2" />
-                  Upload to Drive
-                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem onClick={handleUploadToDrive} disabled={isSyncing}>
+                    <CloudUpload className="h-4 w-4 mr-2" />
+                    Upload to Drive
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleDownloadFromDrive} disabled={isSyncing}>
                   <CloudDownload className="h-4 w-4 mr-2" />
                   Download from Drive
