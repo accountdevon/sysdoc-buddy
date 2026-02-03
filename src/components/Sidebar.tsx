@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText, ChevronUp, MoreVertical, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { ChevronRight, ChevronDown, Plus, Pencil, Trash2, FileText, ChevronUp, MoreVertical, PanelLeftClose, PanelLeft, Server, Network, HardDrive, Shield, Folder, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Category, Subcategory, Topic } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +27,19 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+const getCategoryIcon = (iconName: string) => {
+  const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+    server: Server,
+    network: Network,
+    storage: HardDrive,
+    security: Shield,
+    folder: Folder,
+    settings: Settings,
+  };
+  return iconMap[iconName] || Folder;
+};
 
 interface SidebarProps {
   categories: Category[];
@@ -160,20 +173,49 @@ export function Sidebar({
     toast.success('Topic added');
   };
 
-  // Don't render sidebar if hidden on desktop (but always show on mobile)
+  // Collapsed mini sidebar with icons when hidden on desktop
   if (!sidebarVisible && !isMobile) {
     return (
-      <div className="hidden lg:flex items-start pt-4 pl-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 rounded-lg bg-card border border-border shadow-sm hover:bg-secondary"
-          onClick={onToggleSidebar}
-          title="Show sidebar"
-        >
-          <PanelLeft className="h-4 w-4" />
-        </Button>
-      </div>
+      <TooltipProvider delayDuration={100}>
+        <aside className="hidden lg:flex w-14 border-r border-border bg-card/50 flex-col h-[calc(100vh-4rem)]">
+          <div className="p-2 border-b border-border flex items-center justify-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={onToggleSidebar}
+              title="Expand sidebar"
+            >
+              <PanelLeft className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto py-2 space-y-1">
+            {categories.map((category) => {
+              const IconComponent = getCategoryIcon(category.icon);
+              return (
+                <Tooltip key={category.id}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`w-full h-10 rounded-none ${selectedCategoryId === category.id ? 'bg-primary/10 text-primary' : ''}`}
+                      onClick={() => {
+                        onSelectCategory(category.id);
+                        onToggleSidebar?.();
+                      }}
+                    >
+                      <IconComponent className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-popover text-popover-foreground">
+                    {category.name}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
+        </aside>
+      </TooltipProvider>
     );
   }
 
