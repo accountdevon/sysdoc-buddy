@@ -12,6 +12,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -35,6 +45,8 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
   const [editingTopic, setEditingTopic] = useState(false);
   const [editingCodeBlock, setEditingCodeBlock] = useState<CodeBlockType | null>(null);
   const [addingCodeBlock, setAddingCodeBlock] = useState(false);
+  const [deleteTopicOpen, setDeleteTopicOpen] = useState(false);
+  const [deleteCommandId, setDeleteCommandId] = useState<string | null>(null);
   const [topicForm, setTopicForm] = useState({ title: topic.title, description: topic.description, notes: topic.notes || '' });
   const [codeForm, setCodeForm] = useState({ title: '', description: '', code: '', language: 'bash' });
 
@@ -45,11 +57,9 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
   };
 
   const handleDeleteTopic = () => {
-    if (confirm('Are you sure you want to delete this topic?')) {
-      deleteTopic(categoryId, subcategoryId, topic.id);
-      onBack();
-      toast.success('Topic deleted');
-    }
+    deleteTopic(categoryId, subcategoryId, topic.id);
+    onBack();
+    toast.success('Topic deleted');
   };
 
   const handleAddCodeBlock = () => {
@@ -81,12 +91,12 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
     toast.success('Command updated');
   };
 
-  const handleDeleteCodeBlock = (blockId: string) => {
-    if (confirm('Delete this command?')) {
-      const updatedBlocks = topic.codeBlocks.filter(b => b.id !== blockId);
-      updateTopic(categoryId, subcategoryId, topic.id, { codeBlocks: updatedBlocks });
-      toast.success('Command deleted');
-    }
+  const handleDeleteCodeBlock = () => {
+    if (!deleteCommandId) return;
+    const updatedBlocks = topic.codeBlocks.filter(b => b.id !== deleteCommandId);
+    updateTopic(categoryId, subcategoryId, topic.id, { codeBlocks: updatedBlocks });
+    setDeleteCommandId(null);
+    toast.success('Command deleted');
   };
 
   const formatDate = (dateString: string) => {
@@ -119,7 +129,7 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
               <Pencil className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Edit</span>
             </Button>
-            <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={handleDeleteTopic}>
+            <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => setDeleteTopicOpen(true)}>
               <Trash2 className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Delete</span>
             </Button>
@@ -162,7 +172,7 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
                 key={block.id}
                 block={block}
                 onEdit={() => handleEditCodeBlock(block)}
-                onDelete={() => handleDeleteCodeBlock(block.id)}
+                onDelete={() => setDeleteCommandId(block.id)}
               />
             ))}
           </div>
@@ -282,6 +292,54 @@ export function TopicView({ topic, categoryId, subcategoryId, onBack }: TopicVie
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Topic Confirmation */}
+      <AlertDialog open={deleteTopicOpen} onOpenChange={setDeleteTopicOpen}>
+        <AlertDialogContent className="border-destructive/20">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Delete Topic
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{topic.title}"? This will also remove all commands within this topic. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTopic}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Topic
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Command Confirmation */}
+      <AlertDialog open={!!deleteCommandId} onOpenChange={(open) => !open && setDeleteCommandId(null)}>
+        <AlertDialogContent className="border-destructive/20">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Delete Command
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this command? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCodeBlock}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Command
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
