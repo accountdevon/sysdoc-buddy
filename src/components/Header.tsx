@@ -288,7 +288,17 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                   {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Settings className="h-4 w-4" />}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="bg-popover z-50">
+                {/* Admin Settings */}
+                {isAdmin && (
+                  <>
+                    <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+                      <Key className="h-4 w-4 mr-2" />
+                      Admin Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 {/* Drive Sync Options */}
                 {isAdmin && (
                   <DropdownMenuItem onClick={handleUploadToDrive} disabled={isSyncing}>
@@ -331,13 +341,6 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
 
           {isAdmin && (
             <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-              {!isMobile && (
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-9 w-9">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-              )}
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
