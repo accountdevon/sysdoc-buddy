@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Category, Subcategory, Topic } from '@/types';
 import { CategoryCard } from './CategoryCard';
 import { TopicView } from './TopicView';
+import { BreadcrumbNav } from './BreadcrumbNav';
 import { Terminal, FileText, FolderOpen, Plus, Pencil, Trash2, MoreVertical } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
@@ -66,6 +67,7 @@ interface MainContentProps {
   onSelectSubcategory: (categoryId: string, subcategoryId: string) => void;
   onSelectTopic: (categoryId: string, subcategoryId: string, topicId: string) => void;
   onBack: () => void;
+  onNavigateHome: () => void;
 }
 
 export function MainContent({
@@ -76,7 +78,8 @@ export function MainContent({
   onSelectCategory,
   onSelectSubcategory,
   onSelectTopic,
-  onBack
+  onBack,
+  onNavigateHome
 }: MainContentProps) {
   const { isAdmin } = useAuth();
   const isMobile = useIsMobile();
@@ -226,12 +229,22 @@ export function MainContent({
   // If viewing a topic
   if (selectedTopic && selectedCategoryId && selectedSubcategoryId) {
     return (
-      <TopicView
-        topic={selectedTopic}
-        categoryId={selectedCategoryId}
-        subcategoryId={selectedSubcategoryId}
-        onBack={onBack}
-      />
+      <div className="space-y-4">
+        <BreadcrumbNav
+          categoryName={selectedCategory?.name}
+          subcategoryName={selectedSubcategory?.name}
+          topicName={selectedTopic.title}
+          onNavigateHome={onNavigateHome}
+          onNavigateCategory={() => onSelectCategory(selectedCategoryId)}
+          onNavigateSubcategory={() => onSelectSubcategory(selectedCategoryId, selectedSubcategoryId)}
+        />
+        <TopicView
+          topic={selectedTopic}
+          categoryId={selectedCategoryId}
+          subcategoryId={selectedSubcategoryId}
+          onBack={onBack}
+        />
+      </div>
     );
   }
 
@@ -239,6 +252,13 @@ export function MainContent({
   if (selectedSubcategory && selectedCategoryId) {
     return (
       <div className="space-y-6">
+        <BreadcrumbNav
+          categoryName={selectedCategory?.name}
+          subcategoryName={selectedSubcategory.name}
+          onNavigateHome={onNavigateHome}
+          onNavigateCategory={() => onSelectCategory(selectedCategoryId)}
+          onNavigateSubcategory={() => {}}
+        />
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-2xl font-semibold">{selectedSubcategory.name}</h2>
@@ -363,6 +383,12 @@ export function MainContent({
   if (selectedCategory) {
     return (
       <div className="space-y-6">
+        <BreadcrumbNav
+          categoryName={selectedCategory.name}
+          onNavigateHome={onNavigateHome}
+          onNavigateCategory={() => {}}
+          onNavigateSubcategory={() => {}}
+        />
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-2xl font-semibold">{selectedCategory.name}</h2>
