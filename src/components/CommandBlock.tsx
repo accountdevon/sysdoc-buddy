@@ -44,26 +44,28 @@ export function CommandBlock({ block, onEdit, onDelete }: CommandBlockProps) {
   return (
     <div className="command-block space-y-3">
       {/* 1. Command Title with admin actions */}
-      {block.title && (
-        <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between">
+        {block.title ? (
           <h4 className="font-medium text-foreground">{block.title}</h4>
-          {isAdmin && (
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
-                <Pencil className="h-3.5 w-3.5" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7 text-destructive hover:text-destructive" 
-                onClick={onDelete}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+        ) : (
+          <span className="text-sm text-muted-foreground italic">Untitled command</span>
+        )}
+        {isAdmin && (
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7 text-destructive hover:text-destructive" 
+              onClick={onDelete}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* 2. Description - What does this command do */}
       {block.description && (
