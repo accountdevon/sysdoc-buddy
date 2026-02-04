@@ -195,7 +195,7 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 sm:h-16 items-center justify-between px-4">
+      <div className="flex h-14 sm:h-16 items-center justify-between px-4">
         <div className="flex items-center gap-2 sm:gap-3">
           {mobileNav}
           <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 terminal-border">
@@ -215,15 +215,13 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
             </span>
           )}
 
-          {isAdmin && (
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              onChange={handleImport}
-              className="hidden"
-            />
-          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImport}
+            className="hidden"
+          />
 
           {isMobile ? (
             <DropdownMenu>
@@ -320,12 +318,10 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                   <Download className="h-4 w-4 mr-2" />
                   Export JSON
                 </DropdownMenuItem>
-                {isAdmin && (
-                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Import JSON
-                  </DropdownMenuItem>
-                )}
+                <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import JSON
+                </DropdownMenuItem>
                 {lastSyncedAt && (
                   <>
                     <DropdownMenuSeparator />
