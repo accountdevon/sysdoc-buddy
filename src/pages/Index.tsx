@@ -48,6 +48,12 @@ const Index = () => {
     }
   };
 
+  const handleNavigateHome = () => {
+    setSelectedCategoryId(null);
+    setSelectedSubcategoryId(null);
+    setSelectedTopicId(null);
+  };
+
   // Ctrl+F keyboard shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -105,6 +111,7 @@ const Index = () => {
             onSelectSubcategory={handleSelectSubcategory}
             onSelectTopic={handleSelectTopic}
             onBack={handleBack}
+            onNavigateHome={handleNavigateHome}
           />
         </main>
       </div>
