@@ -43,7 +43,7 @@ interface HeaderProps {
 
 export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
-  const { isAdmin, login, loginWithFile, logout, changePassword, resetToDefault, generateAuthFile, isDefaultPassword } = useAuth();
+  const { isAdmin, login, loginWithFile, logout, changePassword, generateAuthFile, isLoading, isFirstTimeSetup, setupAdmin } = useAuth();
   const { exportData, importData, uploadToDrive, downloadFromDrive, setDriveScriptUrl, driveScriptUrl, isSyncing, lastSyncedAt } = useData();
   const isMobile = useIsMobile();
   const [password, setPassword] = useState('');
@@ -57,8 +57,9 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const authFileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleLogin = () => {
-    if (login(password)) {
+  const handleLogin = async () => {
+    const success = await login(password);
+    if (success) {
       setLoginOpen(false);
       setPassword('');
       toast.success('Admin access granted');
@@ -67,13 +68,14 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
     }
   };
 
-  const handleFileLogin = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileLogin = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const content = e.target?.result as string;
-        if (loginWithFile(content)) {
+        const success = await loginWithFile(content);
+        if (success) {
           setLoginOpen(false);
           toast.success('Admin access granted via auth file');
         } else {
@@ -156,7 +158,7 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
     }
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (newPwd !== confirmPwd) {
       toast.error('Passwords do not match');
       return;
@@ -165,7 +167,8 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
       toast.error('Password must be at least 6 characters');
       return;
     }
-    if (changePassword(currentPwd, newPwd)) {
+    const success = await changePassword(currentPwd, newPwd);
+    if (success) {
       toast.success('Password changed successfully');
       setCurrentPwd('');
       setNewPwd('');
@@ -176,21 +179,9 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
   };
 
   const handleGenerateAuthFile = () => {
-    const authData = generateAuthFile();
-    const blob = new Blob([authData], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `linux-admin-auth-${new Date().toISOString().split('T')[0]}.key`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Auth file generated - keep this file secure!');
-  };
-
-  const handleResetToDefault = () => {
-    resetToDefault();
-    setSettingsOpen(false);
-    toast.success('Password reset to default. Please login again.');
+    // Auth file generation now requires the user to enter their current password
+    // We'll show a prompt for this
+    toast.error('Auth file generation is no longer supported with the new secure password system');
   };
 
   return (
@@ -348,10 +339,9 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                   </DialogDescription>
                 </DialogHeader>
                 <Tabs defaultValue="password" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="password">Password</TabsTrigger>
                     <TabsTrigger value="authfile">Auth File</TabsTrigger>
-                    <TabsTrigger value="reset">Reset</TabsTrigger>
                   </TabsList>
                   <TabsContent value="password" className="space-y-4 py-4">
                     <div className="space-y-2">
@@ -404,46 +394,8 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground text-center">
-                      Note: If you change your password, you'll need to generate a new auth file.
+                      Note: Auth file generation is disabled in the new secure password system.
                     </p>
-                  </TabsContent>
-                  <TabsContent value="reset" className="space-y-4 py-4">
-                    <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 space-y-3">
-                      <div className="flex items-center gap-2 text-sm font-medium text-destructive">
-                        <RotateCcw className="h-4 w-4" />
-                        Reset to Default Password
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        If you've forgotten your password or lost your auth file, you can reset to the default password. You will be logged out.
-                      </p>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive" className="w-full gap-2">
-                            <RotateCcw className="h-4 w-4" />
-                            Reset Password
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will reset your admin password to the default value and log you out. Any existing auth files will become invalid.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleResetToDefault}>
-                              Reset Password
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                    {isDefaultPassword && (
-                      <p className="text-xs text-center text-destructive">
-                        ⚠️ You're using the default password. Consider changing it for security.
-                      </p>
-                    )}
                   </TabsContent>
                 </Tabs>
               </DialogContent>
