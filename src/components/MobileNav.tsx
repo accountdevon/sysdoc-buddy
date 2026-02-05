@@ -28,19 +28,17 @@ export function MobileNav({
 
   const handleSelectCategory = (id: string) => {
     onSelectCategory(id);
-    // Close sidebar when category is selected on mobile
-    setOpen(false);
+    // Keep sidebar open when selecting category - user may want to continue navigating
   };
 
   const handleSelectSubcategory = (categoryId: string, subcategoryId: string) => {
     onSelectSubcategory(categoryId, subcategoryId);
-    // Close sidebar when subcategory is selected on mobile
-    setOpen(false);
+    // Keep sidebar open when selecting subcategory - user may want to continue navigating
   };
 
   const handleSelectTopic = (categoryId: string, subcategoryId: string, topicId: string) => {
     onSelectTopic(categoryId, subcategoryId, topicId);
-    // Close sidebar when topic is selected on mobile
+    // Close sidebar only when topic is selected (final destination)
     setOpen(false);
   };
 
