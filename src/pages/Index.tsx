@@ -4,15 +4,26 @@ import { Sidebar } from '@/components/Sidebar';
 import { MainContent } from '@/components/MainContent';
 import { MobileNav } from '@/components/MobileNav';
 import { SearchDialog } from '@/components/SearchDialog';
+import { AdminSetupDialog } from '@/components/AdminSetupDialog';
 import { useData } from '@/contexts/DataContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
   const { categories } = useData();
+  const { isLoading, isFirstTimeSetup } = useAuth();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string | null>(null);
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [setupDialogOpen, setSetupDialogOpen] = useState(false);
+
+  // Show setup dialog when it's first time setup
+  useEffect(() => {
+    if (!isLoading && isFirstTimeSetup) {
+      setSetupDialogOpen(true);
+    }
+  }, [isLoading, isFirstTimeSetup]);
 
   const handleSelectCategory = (id: string) => {
     setSelectedCategoryId(id);
@@ -87,6 +98,10 @@ const Index = () => {
         open={searchOpen} 
         onOpenChange={setSearchOpen}
         onNavigate={handleSearchNavigate}
+      />
+      <AdminSetupDialog 
+        open={setupDialogOpen} 
+        onOpenChange={setSetupDialogOpen}
       />
       <div className="flex">
         <Sidebar
