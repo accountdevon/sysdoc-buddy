@@ -1,4 +1,4 @@
-import { Terminal, Sun, Moon, LogIn, LogOut, Download, Upload, Shield, Settings, Key, FileKey, RotateCcw, Search, MoreVertical, CloudDownload, CloudUpload, Loader2, HardDrive } from 'lucide-react';
+import { Terminal, Sun, Moon, LogIn, LogOut, Download, Upload, Shield, Settings, Key, FileKey, Search, MoreVertical, CloudDownload, CloudUpload, Loader2, HardDrive, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,17 +24,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 
 interface HeaderProps {
   mobileNav?: React.ReactNode;
@@ -43,7 +32,7 @@ interface HeaderProps {
 
 export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
-  const { isAdmin, login, loginWithFile, logout, changePassword, generateAuthFile, isLoading, isFirstTimeSetup, setupAdmin } = useAuth();
+  const { isAdmin, login, loginWithFile, logout, changePassword, generateResetKey, resetPasswordWithKey } = useAuth();
   const { exportData, importData, uploadToDrive, downloadFromDrive, setDriveScriptUrl, driveScriptUrl, isSyncing, lastSyncedAt } = useData();
   const isMobile = useIsMobile();
   const [password, setPassword] = useState('');
@@ -54,8 +43,17 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
   const [currentPwd, setCurrentPwd] = useState('');
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
+  const [resetKeyPwd, setResetKeyPwd] = useState('');
+  const [isGeneratingKey, setIsGeneratingKey] = useState(false);
+  // Reset password state
+  const [resetNewPwd, setResetNewPwd] = useState('');
+  const [resetConfirmPwd, setResetConfirmPwd] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const authFileInputRef = useRef<HTMLInputElement>(null);
+  const resetFileInputRef = useRef<HTMLInputElement>(null);
+  const [resetFileContent, setResetFileContent] = useState<string | null>(null);
+  const [resetFileName, setResetFileName] = useState('');
 
   const handleLogin = async () => {
     const success = await login(password);
@@ -84,9 +82,7 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
       };
       reader.readAsText(file);
     }
-    if (authFileInputRef.current) {
-      authFileInputRef.current.value = '';
-    }
+    if (authFileInputRef.current) authFileInputRef.current.value = '';
   };
 
   const handleExport = () => {
@@ -115,9 +111,7 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
       };
       reader.readAsText(file);
     }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleUploadToDrive = async () => {
@@ -127,11 +121,8 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
       return;
     }
     const success = await uploadToDrive();
-    if (success) {
-      toast.success('Data uploaded to Google Drive');
-    } else {
-      toast.error('Failed to upload data to Google Drive');
-    }
+    if (success) toast.success('Data uploaded to Google Drive');
+    else toast.error('Failed to upload data to Google Drive');
   };
 
   const handleDownloadFromDrive = async () => {
@@ -141,11 +132,8 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
       return;
     }
     const success = await downloadFromDrive();
-    if (success) {
-      toast.success('Data downloaded from Google Drive');
-    } else {
-      toast.error('Failed to download data from Google Drive');
-    }
+    if (success) toast.success('Data downloaded from Google Drive');
+    else toast.error('Failed to download data from Google Drive');
   };
 
   const handleSaveDriveScriptUrl = () => {
@@ -159,29 +147,73 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
   };
 
   const handleChangePassword = async () => {
-    if (newPwd !== confirmPwd) {
-      toast.error('Passwords do not match');
-      return;
-    }
-    if (newPwd.length < 6) {
-      toast.error('Password must be at least 6 characters');
-      return;
-    }
+    if (newPwd !== confirmPwd) { toast.error('Passwords do not match'); return; }
+    if (newPwd.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     const success = await changePassword(currentPwd, newPwd);
     if (success) {
       toast.success('Password changed successfully');
-      setCurrentPwd('');
-      setNewPwd('');
-      setConfirmPwd('');
+      setCurrentPwd(''); setNewPwd(''); setConfirmPwd('');
     } else {
       toast.error('Current password is incorrect');
     }
   };
 
-  const handleGenerateAuthFile = () => {
-    // Auth file generation now requires the user to enter their current password
-    // We'll show a prompt for this
-    toast.error('Auth file generation is no longer supported with the new secure password system');
+  const handleGenerateResetKey = async () => {
+    if (!resetKeyPwd) { toast.error('Please enter your current password'); return; }
+    setIsGeneratingKey(true);
+    try {
+      const key = await generateResetKey(resetKeyPwd);
+      if (key) {
+        const blob = new Blob([key], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `admin-reset-key-${new Date().toISOString().split('T')[0]}.key`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success('Reset key file downloaded. Keep it safe!');
+        setResetKeyPwd('');
+      } else {
+        toast.error('Invalid password. Cannot generate reset key.');
+      }
+    } finally {
+      setIsGeneratingKey(false);
+    }
+  };
+
+  const handleResetFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setResetFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setResetFileContent(e.target?.result as string);
+      };
+      reader.readAsText(file);
+    }
+    if (resetFileInputRef.current) resetFileInputRef.current.value = '';
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetFileContent) { toast.error('Please upload a reset key file'); return; }
+    if (resetNewPwd !== resetConfirmPwd) { toast.error('Passwords do not match'); return; }
+    if (resetNewPwd.length < 6) { toast.error('Password must be at least 6 characters'); return; }
+    setIsResetting(true);
+    try {
+      const success = await resetPasswordWithKey(resetFileContent, resetNewPwd);
+      if (success) {
+        toast.success('Password reset successfully! You are now logged in.');
+        setLoginOpen(false);
+        setResetFileContent(null);
+        setResetFileName('');
+        setResetNewPwd('');
+        setResetConfirmPwd('');
+      } else {
+        toast.error('Invalid or expired reset key file');
+      }
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   return (
@@ -206,13 +238,8 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
             </span>
           )}
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json"
-            onChange={handleImport}
-            className="hidden"
-          />
+          <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
+          <input ref={resetFileInputRef} type="file" accept=".key" onChange={handleResetFileSelect} className="hidden" />
 
           {isMobile ? (
             <DropdownMenu>
@@ -232,100 +259,86 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                   Toggle theme
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                {/* Settings - always available */}
+                <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </DropdownMenuItem>
                 {isAdmin ? (
-                  <>
-                    <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
-                      <Settings className="h-4 w-4 mr-2" />
-                      Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={logout}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Logout
-                    </DropdownMenuItem>
-                  </>
+                  <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
                 ) : (
-                  <>
-                    <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
-                      <Settings className="h-4 w-4 mr-2" />
-                      Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setLoginOpen(true)}>
-                      <LogIn className="h-4 w-4 mr-2" />
-                      Admin login
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-        ) : (
-          <>
-            <Button variant="ghost" size="icon" onClick={onOpenSearch} className="h-8 w-8 sm:h-9 sm:w-9">
-              <Search className="h-4 w-4" />
-            </Button>
-
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 sm:h-9 sm:w-9">
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
-
-            {/* Settings Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" disabled={isSyncing}>
-                  {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Settings className="h-4 w-4" />}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-popover z-50">
-                {/* Admin Settings */}
-                {isAdmin && (
-                  <>
-                    <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
-                      <Key className="h-4 w-4 mr-2" />
-                      Admin Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                  </>
-                )}
-                {/* Drive Sync Options */}
-                {isAdmin && (
-                  <DropdownMenuItem onClick={handleUploadToDrive} disabled={isSyncing}>
-                    <CloudUpload className="h-4 w-4 mr-2" />
-                    Upload to Drive
+                  <DropdownMenuItem onClick={() => setLoginOpen(true)}>
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Admin login
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={handleDownloadFromDrive} disabled={isSyncing}>
-                  <CloudDownload className="h-4 w-4 mr-2" />
-                  Download from Drive
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setDriveSettingsOpen(true)}>
-                  <HardDrive className="h-4 w-4 mr-2" />
-                  Drive Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {/* JSON Import/Export */}
-                <DropdownMenuItem onClick={handleExport}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export JSON
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import JSON
-                </DropdownMenuItem>
-                {lastSyncedAt && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                      Last synced: {new Date(lastSyncedAt).toLocaleString()}
-                    </div>
-                  </>
-                )}
               </DropdownMenuContent>
             </DropdownMenu>
+          ) : (
+            <>
+              <Button variant="ghost" size="icon" onClick={onOpenSearch} className="h-8 w-8 sm:h-9 sm:w-9">
+                <Search className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 sm:h-9 sm:w-9">
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" disabled={isSyncing}>
+                    {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Settings className="h-4 w-4" />}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-popover z-50">
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+                        <Key className="h-4 w-4 mr-2" />
+                        Admin Settings
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+                  {isAdmin && (
+                    <DropdownMenuItem onClick={handleUploadToDrive} disabled={isSyncing}>
+                      <CloudUpload className="h-4 w-4 mr-2" />
+                      Upload to Drive
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={handleDownloadFromDrive} disabled={isSyncing}>
+                    <CloudDownload className="h-4 w-4 mr-2" />
+                    Download from Drive
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setDriveSettingsOpen(true)}>
+                    <HardDrive className="h-4 w-4 mr-2" />
+                    Drive Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleExport}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export JSON
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import JSON
+                  </DropdownMenuItem>
+                  {lastSyncedAt && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                        Last synced: {new Date(lastSyncedAt).toLocaleString()}
+                      </div>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           )}
 
+          {/* Admin Settings Dialog */}
           {isAdmin && (
             <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
               <DialogContent className="sm:max-w-md">
@@ -335,69 +348,96 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                     Admin Settings
                   </DialogTitle>
                   <DialogDescription>
-                    Manage your admin password and authentication
+                    Manage your admin password and recovery key
                   </DialogDescription>
                 </DialogHeader>
                 <Tabs defaultValue="password" className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="password">Password</TabsTrigger>
-                    <TabsTrigger value="authfile">Auth File</TabsTrigger>
+                    <TabsTrigger value="resetkey">Reset Key</TabsTrigger>
                   </TabsList>
                   <TabsContent value="password" className="space-y-4 py-4">
                     <div className="space-y-2">
                       <Label htmlFor="current">Current Password</Label>
-                      <Input
-                        id="current"
-                        type="password"
-                        placeholder="Enter current password"
-                        value={currentPwd}
-                        onChange={(e) => setCurrentPwd(e.target.value)}
-                      />
+                      <Input id="current" type="password" placeholder="Enter current password" value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="new">New Password</Label>
-                      <Input
-                        id="new"
-                        type="password"
-                        placeholder="Enter new password (min 6 chars)"
-                        value={newPwd}
-                        onChange={(e) => setNewPwd(e.target.value)}
-                      />
+                      <Input id="new" type="password" placeholder="Enter new password (min 6 chars)" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="confirm">Confirm Password</Label>
-                      <Input
-                        id="confirm"
-                        type="password"
-                        placeholder="Confirm new password"
-                        value={confirmPwd}
-                        onChange={(e) => setConfirmPwd(e.target.value)}
-                      />
+                      <Input id="confirm" type="password" placeholder="Confirm new password" value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)} />
                     </div>
                     <Button onClick={handleChangePassword} className="w-full gap-2">
                       <Key className="h-4 w-4" />
                       Change Password
                     </Button>
                   </TabsContent>
-                  <TabsContent value="authfile" className="space-y-4 py-4">
+                  <TabsContent value="resetkey" className="space-y-4 py-4">
                     <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3">
                       <div className="flex items-center gap-2 text-sm font-medium">
                         <FileKey className="h-4 w-4 text-primary" />
-                        Encrypted Auth File
+                        Generate Password Reset Key
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Generate an encrypted authentication file to login from another device without typing your password. Keep this file secure!
+                        Generate an encrypted key file that can be used to reset your password if you forget it. Keep this file in a safe place!
                       </p>
-                      <Button onClick={handleGenerateAuthFile} className="w-full gap-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="resetkey-pwd">Current Password</Label>
+                        <Input id="resetkey-pwd" type="password" placeholder="Enter current password" value={resetKeyPwd} onChange={(e) => setResetKeyPwd(e.target.value)} />
+                      </div>
+                      <Button onClick={handleGenerateResetKey} className="w-full gap-2" disabled={isGeneratingKey}>
                         <Download className="h-4 w-4" />
-                        Generate Auth File
+                        {isGeneratingKey ? 'Generating...' : 'Generate & Download Reset Key'}
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground text-center">
-                      Note: Auth file generation is disabled in the new secure password system.
-                    </p>
+                    <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md">
+                      <p className="font-medium mb-1">⚠️ Important:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>The reset key becomes invalid after you change your password</li>
+                        <li>Generate a new key after each password change</li>
+                        <li>Store the .key file securely offline</li>
+                      </ul>
+                    </div>
                   </TabsContent>
                 </Tabs>
+              </DialogContent>
+            </Dialog>
+          )}
+
+          {/* Non-admin settings (Drive, import/export) */}
+          {!isAdmin && isMobile && (
+            <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5 text-primary" />
+                    Settings
+                  </DialogTitle>
+                  <DialogDescription>
+                    Data sync and import/export settings
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 py-4">
+                  <Button onClick={handleDownloadFromDrive} disabled={isSyncing} className="w-full gap-2" variant="outline">
+                    <CloudDownload className="h-4 w-4" />
+                    Download from Drive
+                  </Button>
+                  <Button onClick={() => { setSettingsOpen(false); setDriveSettingsOpen(true); }} className="w-full gap-2" variant="outline">
+                    <HardDrive className="h-4 w-4" />
+                    Drive Settings
+                  </Button>
+                  <DropdownMenuSeparator />
+                  <Button onClick={handleExport} className="w-full gap-2" variant="outline">
+                    <Download className="h-4 w-4" />
+                    Export JSON
+                  </Button>
+                  <Button onClick={() => fileInputRef.current?.click()} className="w-full gap-2" variant="outline">
+                    <Upload className="h-4 w-4" />
+                    Import JSON
+                  </Button>
+                </div>
               </DialogContent>
             </Dialog>
           )}
@@ -426,13 +466,14 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                     Admin Access
                   </DialogTitle>
                   <DialogDescription>
-                    Enter your password or use an auth file to login
+                    Enter your password, use an auth file, or reset your password
                   </DialogDescription>
                 </DialogHeader>
                 <Tabs defaultValue="password" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="password">Password</TabsTrigger>
                     <TabsTrigger value="file">Auth File</TabsTrigger>
+                    <TabsTrigger value="reset">Reset</TabsTrigger>
                   </TabsList>
                   <TabsContent value="password" className="space-y-4 py-4">
                     <div className="space-y-2">
@@ -444,9 +485,7 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                         onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                       />
                     </div>
-                    <Button onClick={handleLogin} className="w-full">
-                      Login
-                    </Button>
+                    <Button onClick={handleLogin} className="w-full">Login</Button>
                   </TabsContent>
                   <TabsContent value="file" className="space-y-4 py-4">
                     <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3">
@@ -457,21 +496,42 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                       <p className="text-xs text-muted-foreground">
                         Upload the encrypted .key file generated from Admin Settings.
                       </p>
-                      <input
-                        ref={authFileInputRef}
-                        type="file"
-                        accept=".key"
-                        onChange={handleFileLogin}
-                        className="hidden"
-                      />
-                      <Button
-                        onClick={() => authFileInputRef.current?.click()}
-                        className="w-full gap-2"
-                        variant="outline"
-                      >
+                      <input ref={authFileInputRef} type="file" accept=".key" onChange={handleFileLogin} className="hidden" />
+                      <Button onClick={() => authFileInputRef.current?.click()} className="w-full gap-2" variant="outline">
                         <Upload className="h-4 w-4" />
                         Upload Auth File
                       </Button>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="reset" className="space-y-4 py-4">
+                    <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <RotateCcw className="h-4 w-4 text-primary" />
+                        Reset Password with Key File
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Upload your reset key file and set a new password.
+                      </p>
+                      <Button onClick={() => resetFileInputRef.current?.click()} className="w-full gap-2" variant="outline">
+                        <Upload className="h-4 w-4" />
+                        {resetFileName ? resetFileName : 'Upload Reset Key File'}
+                      </Button>
+                      {resetFileContent && (
+                        <>
+                          <div className="space-y-2">
+                            <Label>New Password</Label>
+                            <Input type="password" placeholder="Enter new password (min 6 chars)" value={resetNewPwd} onChange={(e) => setResetNewPwd(e.target.value)} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Confirm Password</Label>
+                            <Input type="password" placeholder="Confirm new password" value={resetConfirmPwd} onChange={(e) => setResetConfirmPwd(e.target.value)} />
+                          </div>
+                          <Button onClick={handleResetPassword} className="w-full gap-2" disabled={isResetting}>
+                            <RotateCcw className="h-4 w-4" />
+                            {isResetting ? 'Resetting...' : 'Reset Password'}
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -494,13 +554,7 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="scriptUrl">Google Apps Script Web App URL</Label>
-                  <Input
-                    id="scriptUrl"
-                    type="url"
-                    placeholder="https://script.google.com/macros/s/..."
-                    value={scriptUrlInput}
-                    onChange={(e) => setScriptUrlInput(e.target.value)}
-                  />
+                  <Input id="scriptUrl" type="url" placeholder="https://script.google.com/macros/s/..." value={scriptUrlInput} onChange={(e) => setScriptUrlInput(e.target.value)} />
                 </div>
                 {driveScriptUrl && (
                   <div className="text-xs text-muted-foreground">
@@ -509,12 +563,10 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                 )}
                 <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-2">
                   <p className="text-xs text-muted-foreground">
-                    To use Google Drive sync, you need to create a Google Apps Script web app. The script should handle POST requests for upload and GET requests for download.
+                    To use Google Drive sync, you need to create a Google Apps Script web app.
                   </p>
                 </div>
-                <Button onClick={handleSaveDriveScriptUrl} className="w-full">
-                  Save URL
-                </Button>
+                <Button onClick={handleSaveDriveScriptUrl} className="w-full">Save URL</Button>
               </div>
             </DialogContent>
           </Dialog>
