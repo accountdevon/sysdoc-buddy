@@ -32,7 +32,7 @@ interface HeaderProps {
 
 export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
-  const { isAdmin, login, loginWithFile, logout, changePassword, generateResetKey, resetPasswordWithKey } = useAuth();
+  const { isAdmin, login, loginWithFile, logout, changePassword, generateResetKey, generateAuthFile, resetPasswordWithKey } = useAuth();
   const { exportData, importData, uploadToDrive, downloadFromDrive, setDriveScriptUrl, driveScriptUrl, isSyncing, lastSyncedAt } = useData();
   const isMobile = useIsMobile();
   const [password, setPassword] = useState('');
@@ -44,7 +44,9 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
   const [resetKeyPwd, setResetKeyPwd] = useState('');
+  const [authFilePwd, setAuthFilePwd] = useState('');
   const [isGeneratingKey, setIsGeneratingKey] = useState(false);
+  const [isGeneratingAuthFile, setIsGeneratingAuthFile] = useState(false);
   // Reset password state
   const [resetNewPwd, setResetNewPwd] = useState('');
   const [resetConfirmPwd, setResetConfirmPwd] = useState('');
@@ -178,6 +180,29 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
       }
     } finally {
       setIsGeneratingKey(false);
+    }
+  };
+
+  const handleGenerateAuthFile = async () => {
+    if (!authFilePwd) { toast.error('Please enter your current password'); return; }
+    setIsGeneratingAuthFile(true);
+    try {
+      const key = await generateAuthFile(authFilePwd);
+      if (key) {
+        const blob = new Blob([key], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `admin-auth-${new Date().toISOString().split('T')[0]}.key`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success('Auth file downloaded. Use it to login on other devices.');
+        setAuthFilePwd('');
+      } else {
+        toast.error('Invalid password. Cannot generate auth file.');
+      }
+    } finally {
+      setIsGeneratingAuthFile(false);
     }
   };
 
@@ -352,8 +377,9 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                   </DialogDescription>
                 </DialogHeader>
                 <Tabs defaultValue="password" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="password">Password</TabsTrigger>
+                    <TabsTrigger value="authfile">Auth File</TabsTrigger>
                     <TabsTrigger value="resetkey">Reset Key</TabsTrigger>
                   </TabsList>
                   <TabsContent value="password" className="space-y-4 py-4">
@@ -373,6 +399,33 @@ export function Header({ mobileNav, onOpenSearch }: HeaderProps) {
                       <Key className="h-4 w-4" />
                       Change Password
                     </Button>
+                  </TabsContent>
+                  <TabsContent value="authfile" className="space-y-4 py-4">
+                    <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <FileKey className="h-4 w-4 text-primary" />
+                        Generate Auth Login File
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Generate an encrypted auth file to login from another device without typing your password. Keep this file secure!
+                      </p>
+                      <div className="space-y-2">
+                        <Label htmlFor="authfile-pwd">Current Password</Label>
+                        <Input id="authfile-pwd" type="password" placeholder="Enter current password" value={authFilePwd} onChange={(e) => setAuthFilePwd(e.target.value)} />
+                      </div>
+                      <Button onClick={handleGenerateAuthFile} className="w-full gap-2" disabled={isGeneratingAuthFile}>
+                        <Download className="h-4 w-4" />
+                        {isGeneratingAuthFile ? 'Generating...' : 'Generate & Download Auth File'}
+                      </Button>
+                    </div>
+                    <div className="text-xs text-muted-foreground bg-muted p-3 rounded-md">
+                      <p className="font-medium mb-1">ℹ️ Note:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>The auth file becomes invalid after you change your password</li>
+                        <li>Use it in the "Auth File" tab on the login dialog</li>
+                        <li>Store the .key file securely</li>
+                      </ul>
+                    </div>
                   </TabsContent>
                   <TabsContent value="resetkey" className="space-y-4 py-4">
                     <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3">
