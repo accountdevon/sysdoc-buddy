@@ -26,6 +26,7 @@ interface AuthContextType {
   setupAdmin: (password: string) => Promise<boolean>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   generateResetKey: (currentPassword: string) => Promise<string | null>;
+  generateAuthFile: (currentPassword: string) => Promise<string | null>;
   resetPasswordWithKey: (fileContent: string, newPassword: string) => Promise<boolean>;
   loginWithFile: (fileContent: string) => Promise<boolean>;
 }
@@ -199,6 +200,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch { return null; }
   };
 
+  // Generate an encrypted auth file for passwordless login on other devices
+  const generateAuthFile = async (currentPassword: string): Promise<string | null> => {
+    if (!credentials) return null;
+    try {
+      const isValid = await verifyPassword(currentPassword, credentials.passwordHash, credentials.salt);
+      if (!isValid) return null;
+
+      const authData = {
+        type: 'linux_admin_auth',
+        passwordHash: credentials.passwordHash,
+        salt: credentials.salt,
+        generatedAt: new Date().toISOString()
+      };
+
+      return encrypt(JSON.stringify(authData));
+    } catch { return null; }
+  };
+
   // Reset password using the encrypted key file
   const resetPasswordWithKey = async (fileContent: string, newPassword: string): Promise<boolean> => {
     if (newPassword.length < 6) return false;
@@ -245,7 +264,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{ 
       isAdmin, isLoading, isFirstTimeSetup,
       login, loginWithFile, logout, setupAdmin,
-      changePassword, generateResetKey, resetPasswordWithKey
+      changePassword, generateResetKey, generateAuthFile, resetPasswordWithKey
     }}>
       {children}
     </AuthContext.Provider>
