@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { supabase } from '@/integrations/supabase/client';
 import { hashPassword, verifyPassword, generateSalt } from '@/lib/crypto';
 import { useAutoLogout } from '@/hooks/useAutoLogout';
+import { SessionWarningDialog } from '@/components/SessionWarningDialog';
 
 interface AdminCredentials {
   passwordHash: string;
@@ -33,9 +34,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_KEY = 'linux_admin_auth';
 const ADMIN_CREDENTIALS_VERSION = 'admin_credentials_v1';
 const ENCRYPTION_KEY = 'linux_admin_secret_key_2024';
+const SESSION_KEY = 'linux_admin_session';
 
 const encrypt = (text: string): string => {
   const encoded = btoa(unescape(encodeURIComponent(text)));
@@ -69,11 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     setIsAdmin(false);
-    localStorage.removeItem(AUTH_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
   }, []);
 
-  // Auto-logout after 10 minutes of inactivity
-  useAutoLogout(isAdmin, logout);
+  const { showWarning, countdown, stayLoggedIn } = useAutoLogout(isAdmin, logout);
 
   useEffect(() => {
     loadCredentials();
@@ -95,8 +95,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (creds.passwordHash && creds.salt) {
           setCredentials(creds);
           setIsFirstTimeSetup(false);
-          const stored = localStorage.getItem(AUTH_KEY);
-          if (stored === 'true') {
+          // Re-validate session from sessionStorage (survives refresh, not tab close)
+          const sessionHash = sessionStorage.getItem(SESSION_KEY);
+          if (sessionHash === creds.passwordHash) {
             setIsAdmin(true);
           }
         } else {
@@ -132,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setCredentials(newCredentials);
       setIsFirstTimeSetup(false);
       setIsAdmin(true);
-      localStorage.setItem(AUTH_KEY, 'true');
+      sessionStorage.setItem(SESSION_KEY, passwordHash);
       return true;
     } catch (err) { console.error('Error setting up admin:', err); return false; }
   };
@@ -141,7 +142,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!credentials) return false;
     try {
       const isValid = await verifyPassword(password, credentials.passwordHash, credentials.salt);
-      if (isValid) { setIsAdmin(true); localStorage.setItem(AUTH_KEY, 'true'); return true; }
+      if (isValid) {
+        setIsAdmin(true);
+        sessionStorage.setItem(SESSION_KEY, credentials.passwordHash);
+        return true;
+      }
       return false;
     } catch (err) { console.error('Error during login:', err); return false; }
   };
@@ -153,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = JSON.parse(decrypted);
       if (data.type === 'linux_admin_auth' && data.passwordHash === credentials.passwordHash && data.salt === credentials.salt) {
         setIsAdmin(true);
-        localStorage.setItem(AUTH_KEY, 'true');
+        sessionStorage.setItem(SESSION_KEY, credentials.passwordHash);
         return true;
       }
       return false;
@@ -177,11 +182,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) { console.error('Error updating password:', error); return false; }
       setCredentials(newCredentials);
+      sessionStorage.setItem(SESSION_KEY, passwordHash);
       return true;
     } catch (err) { console.error('Error changing password:', err); return false; }
   };
 
-  // Generate an encrypted reset key file containing the current password hash
   const generateResetKey = async (currentPassword: string): Promise<string | null> => {
     if (!credentials) return null;
     try {
@@ -200,7 +205,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch { return null; }
   };
 
-  // Generate an encrypted auth file for passwordless login on other devices
   const generateAuthFile = async (currentPassword: string): Promise<string | null> => {
     if (!credentials) return null;
     try {
@@ -218,7 +222,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch { return null; }
   };
 
-  // Reset password using the encrypted key file
   const resetPasswordWithKey = async (fileContent: string, newPassword: string): Promise<boolean> => {
     if (newPassword.length < 6) return false;
     try {
@@ -227,7 +230,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data.type !== 'linux_admin_reset_key') return false;
 
-      // Load current credentials from DB to verify the key matches
       const { data: dbData, error: fetchError } = await supabase
         .from('app_data')
         .select('data')
@@ -237,12 +239,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (fetchError || !dbData) return false;
       const currentCreds = dbData.data as unknown as AdminCredentials;
 
-      // Verify the key matches current credentials
       if (data.passwordHash !== currentCreds.passwordHash || data.salt !== currentCreds.salt) {
-        return false; // Key is outdated (password was changed after key was generated)
+        return false;
       }
 
-      // Set new password
       const salt = generateSalt();
       const passwordHash = await hashPassword(newPassword, salt);
       const newCredentials: AdminCredentials = { passwordHash, salt, createdAt: currentCreds.createdAt };
@@ -255,7 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) return false;
       setCredentials(newCredentials);
       setIsAdmin(true);
-      localStorage.setItem(AUTH_KEY, 'true');
+      sessionStorage.setItem(SESSION_KEY, passwordHash);
       return true;
     } catch { return false; }
   };
@@ -267,6 +267,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       changePassword, generateResetKey, generateAuthFile, resetPasswordWithKey
     }}>
       {children}
+      <SessionWarningDialog 
+        open={showWarning} 
+        countdown={countdown} 
+        onStayLoggedIn={stayLoggedIn} 
+      />
     </AuthContext.Provider>
   );
 }
