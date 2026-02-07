@@ -34,6 +34,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+
 const ADMIN_CREDENTIALS_VERSION = 'admin_credentials_v1';
 const ENCRYPTION_KEY = 'linux_admin_secret_key_2024';
 const SESSION_KEY = 'linux_admin_session';
