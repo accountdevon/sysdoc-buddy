@@ -36,32 +36,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 
 const ADMIN_CREDENTIALS_VERSION = 'admin_credentials_v1';
-const ENCRYPTION_KEY = 'linux_admin_secret_key_2024';
 const SESSION_KEY = 'linux_admin_session';
+const AUTH_FILE_PASSWORD = 'linux_admin_file_key_2024'; // Used as password for AES-GCM key derivation
 
-const encrypt = (text: string): string => {
-  const encoded = btoa(unescape(encodeURIComponent(text)));
-  let result = '';
-  for (let i = 0; i < encoded.length; i++) {
-    const charCode = encoded.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length);
-    result += String.fromCharCode(charCode);
-  }
-  return btoa(result);
-};
-
-const decrypt = (encrypted: string): string => {
-  try {
-    const decoded = atob(encrypted);
-    let result = '';
-    for (let i = 0; i < decoded.length; i++) {
-      const charCode = decoded.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length);
-      result += String.fromCharCode(charCode);
-    }
-    return decodeURIComponent(escape(atob(result)));
-  } catch {
-    return '';
-  }
-};
+import { encryptSecure, decryptSecure } from '@/lib/encryption';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -155,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginWithFile = async (fileContent: string): Promise<boolean> => {
     if (!credentials) return false;
     try {
-      const decrypted = decrypt(fileContent.trim());
+      const decrypted = await decryptSecure(fileContent.trim(), AUTH_FILE_PASSWORD);
       const data = JSON.parse(decrypted);
       if (data.type === 'linux_admin_auth' && data.passwordHash === credentials.passwordHash && data.salt === credentials.salt) {
         setIsAdmin(true);
@@ -202,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         generatedAt: new Date().toISOString()
       };
 
-      return encrypt(JSON.stringify(resetData));
+      return await encryptSecure(JSON.stringify(resetData), AUTH_FILE_PASSWORD);
     } catch { return null; }
   };
 
@@ -219,14 +197,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         generatedAt: new Date().toISOString()
       };
 
-      return encrypt(JSON.stringify(authData));
+      return await encryptSecure(JSON.stringify(authData), AUTH_FILE_PASSWORD);
     } catch { return null; }
   };
 
   const resetPasswordWithKey = async (fileContent: string, newPassword: string): Promise<boolean> => {
     if (newPassword.length < 6) return false;
     try {
-      const decrypted = decrypt(fileContent.trim());
+      const decrypted = await decryptSecure(fileContent.trim(), AUTH_FILE_PASSWORD);
       const data = JSON.parse(decrypted) as ResetKeyData;
 
       if (data.type !== 'linux_admin_reset_key') return false;

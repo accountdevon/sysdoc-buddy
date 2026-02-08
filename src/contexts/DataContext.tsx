@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Category, Subcategory, Topic, CodeBlock, AppData } from '@/types';
+import { validateImportData } from '@/lib/importValidation';
 
 interface DataContextType {
   categories: Category[];
@@ -399,11 +400,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const importData = (jsonString: string): boolean => {
     try {
-      const data: AppData = JSON.parse(jsonString);
-      if (data.categories && Array.isArray(data.categories)) {
-        setCategories(data.categories);
+      const result = validateImportData(jsonString);
+      if (result.success) {
+        setCategories(result.data.categories as Category[]);
         return true;
       }
+      console.error('Import validation failed:', result.error);
       return false;
     } catch {
       return false;
