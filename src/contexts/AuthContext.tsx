@@ -1,22 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { hashPassword, verifyPassword, generateSalt } from '@/lib/crypto';
 import { useAutoLogout } from '@/hooks/useAutoLogout';
 import { SessionWarningDialog } from '@/components/SessionWarningDialog';
-
-interface AdminCredentials {
-  passwordHash: string;
-  salt: string;
-  createdAt: string;
-}
-
-interface ResetKeyData {
-  type: string;
-  passwordHash: string;
-  salt: string;
-  createdAt: string;
-  generatedAt: string;
-}
 
 interface AuthContextType {
   isAdmin: boolean;
@@ -34,18 +18,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-
-const ADMIN_CREDENTIALS_VERSION = 'admin_credentials_v1';
 const SESSION_KEY = 'linux_admin_session';
-const AUTH_FILE_PASSWORD = 'linux_admin_file_key_2024'; // Used as password for AES-GCM key derivation
 
-import { encryptSecure, decryptSecure } from '@/lib/encryption';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+async function callAuthEndpoint(action: string, params: Record<string, unknown> = {}): Promise<Response> {
+  return fetch(`${SUPABASE_URL}/functions/v1/admin-auth`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({ action, ...params }),
+  });
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isFirstTimeSetup, setIsFirstTimeSetup] = useState(false);
-  const [credentials, setCredentials] = useState<AdminCredentials | null>(null);
 
   const logout = useCallback(() => {
     setIsAdmin(false);
@@ -55,38 +48,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { showWarning, countdown, stayLoggedIn } = useAutoLogout(isAdmin, logout);
 
   useEffect(() => {
-    loadCredentials();
+    checkStatus();
   }, []);
 
-  const loadCredentials = async () => {
+  const checkStatus = async () => {
     try {
-      const { data, error } = await supabase
-        .from('app_data')
-        .select('id, data')
-        .eq('version', ADMIN_CREDENTIALS_VERSION)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error loading credentials:', error);
-        setIsFirstTimeSetup(true);
-      } else if (data && data.data) {
-        const creds = data.data as unknown as AdminCredentials;
-        if (creds.passwordHash && creds.salt) {
-          setCredentials(creds);
+      const sessionToken = sessionStorage.getItem(SESSION_KEY);
+      
+      if (sessionToken) {
+        // Validate the session server-side
+        const res = await callAuthEndpoint('validate-session', { sessionToken });
+        const data = await res.json();
+        if (data.valid) {
+          setIsAdmin(true);
           setIsFirstTimeSetup(false);
-          // Re-validate session from sessionStorage (survives refresh, not tab close)
-          const sessionHash = sessionStorage.getItem(SESSION_KEY);
-          if (sessionHash === creds.passwordHash) {
-            setIsAdmin(true);
-          }
         } else {
-          setIsFirstTimeSetup(true);
+          sessionStorage.removeItem(SESSION_KEY);
+          setIsFirstTimeSetup(data.isFirstTimeSetup ?? false);
         }
       } else {
-        setIsFirstTimeSetup(true);
+        // Just check if admin is set up
+        const res = await callAuthEndpoint('check-status');
+        const data = await res.json();
+        setIsFirstTimeSetup(data.isFirstTimeSetup);
       }
     } catch (err) {
-      console.error('Error loading credentials:', err);
+      console.error('Error checking auth status:', err);
       setIsFirstTimeSetup(true);
     } finally {
       setIsLoading(false);
@@ -96,34 +83,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setupAdmin = async (password: string): Promise<boolean> => {
     if (password.length < 6) return false;
     try {
-      const salt = generateSalt();
-      const passwordHash = await hashPassword(password, salt);
-      const newCredentials: AdminCredentials = { passwordHash, salt, createdAt: new Date().toISOString() };
-
-      const { error } = await supabase
-        .from('app_data')
-        .insert({
-          data: newCredentials as unknown as Record<string, never>,
-          version: ADMIN_CREDENTIALS_VERSION,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) { console.error('Error saving credentials:', error); return false; }
-      setCredentials(newCredentials);
-      setIsFirstTimeSetup(false);
-      setIsAdmin(true);
-      sessionStorage.setItem(SESSION_KEY, passwordHash);
-      return true;
+      const res = await callAuthEndpoint('setup', { password });
+      const data = await res.json();
+      if (data.success) {
+        setIsFirstTimeSetup(false);
+        setIsAdmin(true);
+        sessionStorage.setItem(SESSION_KEY, data.sessionToken);
+        return true;
+      }
+      return false;
     } catch (err) { console.error('Error setting up admin:', err); return false; }
   };
 
   const login = async (password: string): Promise<boolean> => {
-    if (!credentials) return false;
     try {
-      const isValid = await verifyPassword(password, credentials.passwordHash, credentials.salt);
-      if (isValid) {
+      const res = await callAuthEndpoint('login', { password });
+      const data = await res.json();
+      if (data.success) {
         setIsAdmin(true);
-        sessionStorage.setItem(SESSION_KEY, credentials.passwordHash);
+        sessionStorage.setItem(SESSION_KEY, data.sessionToken);
         return true;
       }
       return false;
@@ -131,13 +109,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginWithFile = async (fileContent: string): Promise<boolean> => {
-    if (!credentials) return false;
     try {
-      const decrypted = await decryptSecure(fileContent.trim(), AUTH_FILE_PASSWORD);
-      const data = JSON.parse(decrypted);
-      if (data.type === 'linux_admin_auth' && data.passwordHash === credentials.passwordHash && data.salt === credentials.salt) {
+      const res = await callAuthEndpoint('login-with-file', { fileContent });
+      const data = await res.json();
+      if (data.success) {
         setIsAdmin(true);
-        sessionStorage.setItem(SESSION_KEY, credentials.passwordHash);
+        sessionStorage.setItem(SESSION_KEY, data.sessionToken);
         return true;
       }
       return false;
@@ -145,97 +122,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
-    if (!credentials || newPassword.length < 6) return false;
+    if (newPassword.length < 6) return false;
     try {
-      const isValid = await verifyPassword(currentPassword, credentials.passwordHash, credentials.salt);
-      if (!isValid) return false;
-
-      const salt = generateSalt();
-      const passwordHash = await hashPassword(newPassword, salt);
-      const newCredentials: AdminCredentials = { passwordHash, salt, createdAt: credentials.createdAt };
-
-      const { error } = await supabase
-        .from('app_data')
-        .update({ data: newCredentials as unknown as Record<string, never>, updated_at: new Date().toISOString() })
-        .eq('version', ADMIN_CREDENTIALS_VERSION);
-
-      if (error) { console.error('Error updating password:', error); return false; }
-      setCredentials(newCredentials);
-      sessionStorage.setItem(SESSION_KEY, passwordHash);
-      return true;
+      const res = await callAuthEndpoint('change-password', { currentPassword, newPassword });
+      const data = await res.json();
+      if (data.success) {
+        sessionStorage.setItem(SESSION_KEY, data.sessionToken);
+        return true;
+      }
+      return false;
     } catch (err) { console.error('Error changing password:', err); return false; }
   };
 
   const generateResetKey = async (currentPassword: string): Promise<string | null> => {
-    if (!credentials) return null;
     try {
-      const isValid = await verifyPassword(currentPassword, credentials.passwordHash, credentials.salt);
-      if (!isValid) return null;
-
-      const resetData: ResetKeyData = {
-        type: 'linux_admin_reset_key',
-        passwordHash: credentials.passwordHash,
-        salt: credentials.salt,
-        createdAt: credentials.createdAt,
-        generatedAt: new Date().toISOString()
-      };
-
-      return await encryptSecure(JSON.stringify(resetData), AUTH_FILE_PASSWORD);
+      const res = await callAuthEndpoint('generate-reset-key', { currentPassword });
+      const data = await res.json();
+      return data.success ? data.key : null;
     } catch { return null; }
   };
 
   const generateAuthFile = async (currentPassword: string): Promise<string | null> => {
-    if (!credentials) return null;
     try {
-      const isValid = await verifyPassword(currentPassword, credentials.passwordHash, credentials.salt);
-      if (!isValid) return null;
-
-      const authData = {
-        type: 'linux_admin_auth',
-        passwordHash: credentials.passwordHash,
-        salt: credentials.salt,
-        generatedAt: new Date().toISOString()
-      };
-
-      return await encryptSecure(JSON.stringify(authData), AUTH_FILE_PASSWORD);
+      const res = await callAuthEndpoint('generate-auth-file', { currentPassword });
+      const data = await res.json();
+      return data.success ? data.key : null;
     } catch { return null; }
   };
 
   const resetPasswordWithKey = async (fileContent: string, newPassword: string): Promise<boolean> => {
     if (newPassword.length < 6) return false;
     try {
-      const decrypted = await decryptSecure(fileContent.trim(), AUTH_FILE_PASSWORD);
-      const data = JSON.parse(decrypted) as ResetKeyData;
-
-      if (data.type !== 'linux_admin_reset_key') return false;
-
-      const { data: dbData, error: fetchError } = await supabase
-        .from('app_data')
-        .select('data')
-        .eq('version', ADMIN_CREDENTIALS_VERSION)
-        .maybeSingle();
-
-      if (fetchError || !dbData) return false;
-      const currentCreds = dbData.data as unknown as AdminCredentials;
-
-      if (data.passwordHash !== currentCreds.passwordHash || data.salt !== currentCreds.salt) {
-        return false;
+      const res = await callAuthEndpoint('reset-password-with-key', { fileContent, newPassword });
+      const data = await res.json();
+      if (data.success) {
+        setIsAdmin(true);
+        sessionStorage.setItem(SESSION_KEY, data.sessionToken);
+        return true;
       }
-
-      const salt = generateSalt();
-      const passwordHash = await hashPassword(newPassword, salt);
-      const newCredentials: AdminCredentials = { passwordHash, salt, createdAt: currentCreds.createdAt };
-
-      const { error } = await supabase
-        .from('app_data')
-        .update({ data: newCredentials as unknown as Record<string, never>, updated_at: new Date().toISOString() })
-        .eq('version', ADMIN_CREDENTIALS_VERSION);
-
-      if (error) return false;
-      setCredentials(newCredentials);
-      setIsAdmin(true);
-      sessionStorage.setItem(SESSION_KEY, passwordHash);
-      return true;
+      return false;
     } catch { return false; }
   };
 
